@@ -13,12 +13,12 @@
 #
 #	TODO: print only hosts validated with ping
 #		Add nmap option
-#		Add dual stack (report v4 address as well)
+#		
 
 
 function usage {
                echo "	$0 - auto discover IPv6 hosts "
-	       echo "	e.g. $0 <-P> <-i interface>"
+	       echo "	e.g. $0 -D -P "
 	       echo "	-P  suppress pinging discovered hosts"
 	       echo "	-i  use this interface"
 	       echo "	-L  show link-local only"
@@ -42,7 +42,7 @@ QUIET=0
 
 # commands needed for this script
 ip="ip"
-v4="./v4_disc.sh"
+v4="./v4disc.sh"
 
 DEBUG=0
 
@@ -198,7 +198,7 @@ do
 
 	# ping the SLAAC addresses
 	if [ $PING -eq 1 ]; then
-		log "-- Pinging discovered hosts"
+		log "-- Ping6ing discovered hosts"
 	else
 		log "-- Discovered hosts"
 	fi
