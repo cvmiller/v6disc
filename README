@@ -1,0 +1,27 @@
+v6-auto-discovery.sh
+
+WHAT IT DOES:
+A shell script designed for IPv6 automatic discovery of hosts, with the option to ping hosts.
+
+IPv6 is different, with 18,446,744,073,709,551,616 (2^64) addresses on each subnet (or link) the old brute force method of scanning every address (e.g. with nnap) quickly becomes impossible in our lifetime.
+
+KNOWING IPv6:
+Understanding a little more about how IPv6 works, that each IPv6 node joins the multicast IPv6 all_notes group (FF02::1), one only needs to ping6 this group to determine which hosts are on the link. However, that only yields link-local addresses.
+
+Also understanding how SLAAC addresses are formed from MAC addresses, the v6-auto-discovery script can "guess" the globally routeable addresses of each host.
+
+OPTIONAL PING6:
+The script will also, optionally, ping6 the freshly "guessed" globally routeable addresses to validate the hosts exist.
+
+OPTIONS:
+The script support other options, including:
+   -L   Display link-local hosts (useful when there is no global prefix on net)
+   -i <intf>  Use intf rather than auto-detecting interfaces
+   -q   Quiet mode, only lists global discovered addresses, good for scripting 
+   -h   Help
+
+LIMITATIONS:
+The script assumes /64 subnets (as all end stations should be on a /64). Discovers only the SLAAC address (as defined by RFC 4862), and does not attempt to guess the temporary addresses.
+
+
+

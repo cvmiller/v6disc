@@ -12,8 +12,8 @@
 #
 #
 #	TODO: print only hosts validated with ping
-#		
-#
+#		Add nmap option
+#		Add dual stack (report v4 address as well)
 
 
 function usage {
