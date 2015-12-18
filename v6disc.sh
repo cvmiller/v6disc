@@ -8,10 +8,11 @@
 #	
 #	Assumptions:
 #		All prefixes are assumed /64
-#		Discovers _only_ SLAAC addresses
+#		Discovers _only_ RFC 2373 SLAAC addresses (MAC-based)
 #
 #
-#	TODO: print only hosts validated with ping
+#	TODO: 
+#		print only hosts validated with ping
 #		Add nmap option
 #		
 
@@ -19,7 +20,7 @@
 function usage {
                echo "	$0 - auto discover IPv6 hosts "
 	       echo "	e.g. $0 -D -P "
-	       echo "	-P  suppress pinging discovered hosts"
+	       echo "	-p  Ping discovered hosts"
 	       echo "	-i  use this interface"
 	       echo "	-L  show link-local only"
 	       echo "	-D  Dual Stack, show IPv4 addresses"
@@ -36,7 +37,7 @@ hostlist=""
 INTERFACE=""
 LINK_LOCAL=0
 DUAL_STACK=0
-PING=1
+PING=0
 DEBUG=0
 QUIET=0
 
@@ -46,9 +47,9 @@ v4="./v4disc.sh"
 
 DEBUG=0
 
-while getopts "?dPqi:LD" options; do
+while getopts "?dpqi:LD" options; do
   case $options in
-    P ) PING=0
+    p ) PING=1
     	let numopts+=1;;
     q ) QUIET=1
     	let numopts+=1;;
@@ -94,7 +95,7 @@ function log {
 function 62mac {
 	host=$1
 	#v6_mac=$(echo $host | cut -d ':' -f 5 )
-	v6_mac=$(echo $host | sed -r 's;.*:(\S+);\1;' )
+	v6_mac=$(echo $host | sed -r 's;.*:([^ ]+);\1;' )
 	# return v6_mac value
 	echo $v6_mac
 }
@@ -116,7 +117,7 @@ if [ "$INTERFACE" == "" ]; then
 	# check interface(s) are up
 	log "-- Searching for interface(s)"
 	intf_list=""
-	intf_list=$($ip link | egrep -i '(state up|multicast,up)' | grep -v -i no-carrier | cut -d ":" -f 2 | paste -sd" " -)
+	intf_list=$($ip link | egrep -i '(state up|multicast,up)' | grep -v -i no-carrier | cut -d ":" -f 2 )
 	if [ $DEBUG -eq 1 ]; then
 		echo "DEBUG: listing interfaces $($ip link | egrep '^[0-9]+:')"
 	fi
@@ -133,25 +134,31 @@ fi
 # get prefix(s)
 for intf in $intf_list
 do
-	prefix_list=$(ip addr show dev $intf | grep -v temp | grep inet6 | grep -v fe80 | sed -r 's;(inet6|scope|global|dynamic|/64);;g' | tr -d '\n' )
+	# get list of prefixes on intf
+	prefix_list=$(ip addr show dev $intf | grep -v temp | grep inet6 | grep -v fe80 | sed -r 's;(noprefixroute|inet6|scope|global|dynamic|/64);;g' | tr -d '\n' )
 	plist=""
 	for prefix in $prefix_list
 	do
 		p=$(echo $prefix | cut -d ':' -f 1,2,3,4  )
 		# fix if double colon prefixes
-		p=$(echo $p | sed -r 's;(\w+:):\S+;\1;' )
+		p=$(echo $p | sed -r 's;(\w+:):[!-z]+;\1;' )
 		plist="$plist $p"
 		if [ $DEBUG -eq 1 ]; then
 			echo "DEBUG: $plist"
 		fi
 	done
 	prefix_list=$plist
+	
+	log "-- INT:$intf	prefixs:$prefix_list"
+	
 	# exit if no IPv6 prefixes on net
 	if [ "$prefix_list" == "" ]; then
-		echo "No prefixes found. Exiting."
-		if [ $LINK_LOCAL -eq 0 ]; then exit 1; fi
+		log "No prefixes found."
+		if [ $LINK_LOCAL -eq 0 ]; then 
+			log "Continuing to next interface..."
+			continue
+		fi
 	fi
-	log "-- INT:$intf	prefixs:$prefix_list"
 
 
 	# detect router, won't have a SLAAC address
@@ -161,16 +168,16 @@ do
 
 
 	# detect hosts on link
-	log "-- Detected hosts on link"
-	for intf in $intf_list
-	do
-		i=$(echo "$intf" | tr -d " ")
-		#host_list=$(ping6 -c 2 ff02::1%$i | grep icmp | sort -u  | sed -r 's;.*:(:\S+): .*;\1;' | sort -u)
-		host_list=$(ping6 -c 2 ff02::1%$i | grep icmp | sort -u  | sed -r 's;.*:(:\S+): .*;\1;' | sort -u)
-		if [ "$host_list" == "" ]; then
-			echo "Host detection not working, is this an old OS? Exiting."
-			exit 1
-		fi
+	log "-- Detecting hosts on $intf link"
+
+	i=$(echo "$intf" | tr -d " ")
+	#host_list=$(ping6 -c 2 ff02::1%$i | grep icmp | sort -u  | sed -r 's;.*:(:\S+): .*;\1;' | sort -u)
+	#ping6 -c 2 ff02::1%$i
+
+	host_list=$(ping6 -c 2 ff02::1%$i | egrep 'icmp|seq=' | sort -u  | sed -r 's;.*:(:[^ ]+): .*;\1;' | sort -u)
+	if [ "$host_list" == "" ]; then
+		echo "Host detection not working, is IPv6 enabled on $intf?"
+	else
 		# Dual stack
 		if [ $DUAL_STACK -eq 1 ]; then
 			v4_hosts=$($v4  -6 -q -i $intf)
@@ -193,44 +200,48 @@ do
 				log "fe80:$h"
 			done		
 		fi
-	done
 
+	fi; #end if host list blank
+#	done
 
-	# ping the SLAAC addresses
-	if [ $PING -eq 1 ]; then
-		log "-- Ping6ing discovered hosts"
-	else
-		log "-- Discovered hosts"
-	fi
-	
-	for prefix in $prefix_list
-	do
-		for host in $host_list
+	# don't display discovered hosts, if there is no prefix
+	if [ "$prefix_list" != "" ]; then
+
+		# ping the SLAAC addresses
+		if [ $PING -eq 1 ]; then
+			log "-- Ping6ing discovered hosts"
+		else
+			log "-- Discovered hosts"
+		fi
+
+		for prefix in $prefix_list
 		do
-			if [ $PING -eq 1 ]; then
-				# ping6 hosts discovered
-				log " "
-				log "-- HOST:$prefix$host"
-				ping6 -c1 $prefix$(router_addr $host)
-			else
-				# list hosts found
-				if [ $DUAL_STACK -eq 1 ]; then
-					#v6_mac=$(echo $host | cut -d ':' -f 5 )
-					v6_mac=$(62mac $host)
-
-					v4_host=$(echo $v4_hosts | tr ' ' '\n' | tr -d ':' | grep -- $v6_mac | cut -d '|' -f 1 )
-					echo "$prefix$(router_addr $host)	$v4_host"
+			for host in $host_list
+			do
+				if [ $PING -eq 1 ]; then
+					# ping6 hosts discovered
+					log " "
+					log "-- HOST:$prefix$host"
+					ping6 -c1 $prefix$(router_addr $host)
 				else
-					echo "$prefix$(router_addr $host)"
-				fi
-			fi
+					# list hosts found
+					if [ $DUAL_STACK -eq 1 ]; then
+						#v6_mac=$(echo $host | cut -d ':' -f 5 )
+						v6_mac=$(62mac $host)
 
+						v4_host=$(echo $v4_hosts | tr ' ' '\n' | tr -d ':' | grep -- $v6_mac | cut -d '|' -f 1 )
+						echo "$prefix$(router_addr $host)	$v4_host"
+					else
+						echo "$prefix$(router_addr $host)"
+					fi
+				fi
+
+			done
 		done
-	done
-	
+	fi; # if prefix_list not empty
 #nd for intf_list
 done
 
 #all pau
-if [ $QUIET -eq 0 ]; then echo "-- Pau"; fi
+log "-- Pau"
 
