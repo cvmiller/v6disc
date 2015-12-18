@@ -47,7 +47,7 @@ v4="./v4disc.sh"
 
 DEBUG=0
 
-while getopts "?dpqi:LD" options; do
+while getopts "?hdpqi:LD" options; do
   case $options in
     p ) PING=1
     	let numopts+=1;;
