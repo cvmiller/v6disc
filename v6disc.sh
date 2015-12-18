@@ -8,7 +8,7 @@
 #	
 #	Assumptions:
 #		All prefixes are assumed /64
-#		Discovers _only_ RFC 2373 SLAAC addresses (MAC-based)
+#		Discovers _only_ RFC 4862 SLAAC addresses (MAC-based)
 #
 #
 #	TODO: 

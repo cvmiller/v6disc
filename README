@@ -17,6 +17,7 @@ OPTIONS:
 The script support other options, including:
    -L   Display link-local hosts (useful when there is no global prefix on net)
    -i <intf>  Use intf rather than auto-detecting interfaces
+   -D   Dual Stack, displays IPv6 and IPv4 addresses of discovered hosts
    -q   Quiet mode, only lists global discovered addresses, good for scripting 
    -h   Help
 
