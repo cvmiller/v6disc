@@ -30,7 +30,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=0.90
+VERSION=0.91
 
 # initialize some vars
 hostlist=""
@@ -117,7 +117,7 @@ if [ "$INTERFACE" == "" ]; then
 	# check interface(s) are up
 	log "-- Searching for interface(s)"
 	intf_list=""
-	intf_list=$($ip link | egrep -i '(state up|multicast,up)' | grep -v -i no-carrier | cut -d ":" -f 2 )
+	intf_list=$($ip link | egrep -i '(state up|multicast,up)' | grep -v -i no-carrier | cut -d ":" -f 2 | cut -d "@" -f 1 )
 	if [ $DEBUG -eq 1 ]; then
 		echo "DEBUG: listing interfaces $($ip link | egrep '^[0-9]+:')"
 	fi
@@ -135,7 +135,7 @@ fi
 for intf in $intf_list
 do
 	# get list of prefixes on intf
-	prefix_list=$(ip addr show dev $intf | grep -v temp | grep inet6 | grep -v fe80 | sed -r 's;(noprefixroute|inet6|scope|global|dynamic|/64);;g' | tr -d '\n' )
+	prefix_list=$(ip addr show dev $intf | grep -v temp | grep inet6 | grep -v fe80 | sed -r 's;(noprefixroute|inet6|scope|global|dynamic|/64);;g' )
 	plist=""
 	for prefix in $prefix_list
 	do
@@ -147,7 +147,8 @@ do
 			echo "DEBUG: $plist"
 		fi
 	done
-	prefix_list=$plist
+	# remove duplicate prefixes
+	prefix_list=$(echo $plist | tr ' ' '\n' | sort -u )
 	
 	log "-- INT:$intf	prefixs:$prefix_list"
 	

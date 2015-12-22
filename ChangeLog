@@ -1,0 +1,9 @@
+All changes by Craig Miller cvmiller at gmail dot com
+
+22 December 2015	v0.91
+	Added support for VLAN based interfaces
+	Fixed duplicate prefix detection (when static IPv6 address used)
+
+17 December 2015 	v0.90
+	Initial release (on github)
+	
