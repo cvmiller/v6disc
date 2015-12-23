@@ -13,7 +13,7 @@
 #
 #	TODO: 
 #		print only hosts validated with ping
-#		Add nmap option
+#		x Add nmap option
 #		
 
 
@@ -24,19 +24,21 @@ function usage {
 	       echo "	-i  use this interface"
 	       echo "	-L  show link-local only"
 	       echo "	-D  Dual Stack, show IPv4 addresses"
+	       echo "	-N  Scan with nmap -6 -sT"
 	       echo "	-q  quiet, just print discovered hosts"
 	       echo "	"
 	       echo " By Craig Miller - Version: $VERSION"
 	       exit 1
            }
 
-VERSION=0.91
+VERSION=0.92
 
 # initialize some vars
 hostlist=""
 INTERFACE=""
 LINK_LOCAL=0
 DUAL_STACK=0
+NMAP=0
 PING=0
 DEBUG=0
 QUIET=0
@@ -44,16 +46,20 @@ QUIET=0
 # commands needed for this script
 ip="ip"
 v4="./v4disc.sh"
+nmap="nmap"
+nmap_options=" -6 -sT "
 
 DEBUG=0
 
-while getopts "?hdpqi:LD" options; do
+while getopts "?hdpqi:LDN" options; do
   case $options in
     p ) PING=1
     	let numopts+=1;;
     q ) QUIET=1
     	let numopts+=1;;
     L ) LINK_LOCAL=1
+    	let numopts+=1;;
+    N ) NMAP=1
     	let numopts+=1;;
     D ) DUAL_STACK=1
     	let numopts+=1;;
@@ -76,6 +82,26 @@ if [ $# -ne 0 ]; then
 	usage
 	exit 1
 fi
+
+# check for nmap
+if (( $NMAP == 1 )); then
+	check=$(which $nmap)
+	if (( $? == 1 )); then
+		echo "ERROR: nmap not found, disabling nmap option"
+		NMAP=0
+	else
+		nmap_version=$($nmap --version | tr -d '\n' | sed -r 's;Nmap version ([0-9]).*;\1;' )
+		if (( $nmap_version > 5 )); then
+			# add OS check if root
+			root_check=$(id | sed -r 's;uid=([0-9]+).*;\1;')
+			if (( $root_check == 0 )); then
+				nmap_options="$nmap_options -O "
+			fi
+		fi; #version
+		if (( $DEBUG == 1 )); then echo "DEBUG: nmap version:$nmap_version options:$nmap_options"; fi
+	fi; #which nmap
+fi
+
 
 
 #======== Actual work performed by script ============
@@ -101,7 +127,7 @@ function 62mac {
 }
 
 function router_addr {
-	# adjust $host if it is a router
+	# adjust $	host if it is a router
 	host=$1	
 	if [ "fe80:$host" == "$router_ll" ]; then
 		# try route at :1
@@ -215,27 +241,43 @@ do
 			log "-- Discovered hosts"
 		fi
 
+		# flag hoststr if ping or nmap
+		let options_sum=$PING+$NMAP
+		if [ $options_sum -gt 0 ]; then
+			hoststr="-- HOST:"
+		else
+			hoststr=""
+		fi
+
 		for prefix in $prefix_list
 		do
 			for host in $host_list
-			do
+			do	
+				# print spacer
+				if [ $options_sum -ne 0 ]; then
+					log " "
+				fi		
+				# list hosts found
+				if [ $DUAL_STACK -eq 1 ]; then
+					#v6_mac=$(echo $host | cut -d ':' -f 5 )
+					v6_mac=$(62mac $host)
+
+					v4_host=$(echo $v4_hosts | tr ' ' '\n' | tr -d ':' | grep -- $v6_mac | cut -d '|' -f 1 )
+					echo "$hoststr$prefix$(router_addr $host)	$v4_host"
+				else
+					echo "$hoststr$prefix$(router_addr $host)"
+				fi
+
 				if [ $PING -eq 1 ]; then
 					# ping6 hosts discovered
-					log " "
-					log "-- HOST:$prefix$host"
 					ping6 -c1 $prefix$(router_addr $host)
-				else
-					# list hosts found
-					if [ $DUAL_STACK -eq 1 ]; then
-						#v6_mac=$(echo $host | cut -d ':' -f 5 )
-						v6_mac=$(62mac $host)
-
-						v4_host=$(echo $v4_hosts | tr ' ' '\n' | tr -d ':' | grep -- $v6_mac | cut -d '|' -f 1 )
-						echo "$prefix$(router_addr $host)	$v4_host"
-					else
-						echo "$prefix$(router_addr $host)"
-					fi
 				fi
+				if [ $NMAP -eq 1 ]; then
+					# scanning hosts discovered with nmap
+					$nmap $nmap_options "$prefix$(router_addr $host)"
+				fi
+
+				
 
 			done
 		done

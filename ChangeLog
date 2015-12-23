@@ -1,5 +1,9 @@
 All changes by Craig Miller cvmiller at gmail dot com
 
+23 December 2015	v0.92
+	Added nmap option -N
+		When root, nmap will add -O (OS identification)
+
 22 December 2015	v0.91
 	Added support for VLAN based interfaces
 	Fixed duplicate prefix detection (when static IPv6 address used)

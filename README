@@ -12,17 +12,19 @@ Also understanding how SLAAC addresses are formed from MAC addresses, the v6disc
 
 OPTIONAL PING6:
 The script will also, optionally, ping6 the freshly "guessed" globally routeable addresses to validate the hosts exist.
-
+   -p  Ping6 discovered host
+   
 OPTIONS:
 The script support other options, including:
    -L   Display link-local hosts (useful when there is no global prefix on net)
    -i <intf>  Use intf rather than auto-detecting interfaces
    -D   Dual Stack, displays IPv6 and IPv4 addresses of discovered hosts
+   -N	Will use nmap to probe discovered hosts (with -sT), if root, adds OS detection (-O)
    -q   Quiet mode, only lists global discovered addresses, good for scripting 
    -h   Help
 
 DEPENDENCIES:
-Script requires bash, ip, grep, tr, sed, sort, cut, ping6 and ping (for Dual Stack). Most distros will have these already installed. Tested on OpenWRT (v15.05) after installing bash & ip.
+Script requires bash, ip, nmap, grep, tr, sed, sort, cut, ping6 and ping (for Dual Stack). Most distros will have these already installed. Tested on OpenWRT (v15.05) after installing bash, ip, and nmap.
 
 LIMITATIONS:
 The script assumes /64 subnets (as all end stations should be on a /64). Discovers only the SLAAC address (as defined by RFC 4862), and does not attempt to guess the temporary addresses. Only decects hosts on locally attached network (will not cross routers, but can run on OpenWRT router)
