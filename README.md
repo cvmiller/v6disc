@@ -1,6 +1,6 @@
 ## Synopsis
 
-A shell script designed for IPv6 automatic discovery of hosts, with the option to ping or run namap against discovered hosts.
+A shell script designed for IPv6 automatic discovery of hosts, with the option to ping or run nmap against discovered hosts.
 
 
 ## Examples
@@ -163,7 +163,7 @@ There are two reasons to use `v6disc.sh`
 
 With 18,446,744,073,709,551,616 (2^64) potential addresses on a LAN segment, the old brute force method of scanning every address (e.g. with nnap) quickly becomes impractical. Even with version 7 of `nmap`, scanning a /64 still **takes a week**! `v6disc.sh` scans a /64 less than **2 seconds**.
 
-**IPv6 under the hood**
+####IPv6 under the hood
 Understanding a little more about how IPv6 works, that each IPv6 node joins the multicast IPv6 all_notes group (FF02::1), one only needs to ping6 this group to determine which hosts are on the link. However, that only yields link-local addresses.
 
 Also understanding how SLAAC addresses are formed from MAC addresses, the v6disc script can "guess" the globally routeable addresses of each host.
