@@ -5,7 +5,7 @@ A shell script designed for IPv6 automatic discovery of hosts, with the option t
 
 ## Examples
 
-**Help**
+###Help
 
 ```
 $ ./v6disc.sh -h
@@ -19,7 +19,7 @@ $ ./v6disc.sh -h
 	-q  quiet, just print discovered hosts
 ```
 
-**Auto detecting interfaces and discovering hosts**
+### Auto detecting interfaces and discovering hosts
 
 ```
 $ ./v6disc.sh 
@@ -61,7 +61,7 @@ fe80::a00:27ff:fe21:e445
 -- Pau
 ```
 
-**Using the Link-Local Option**
+### Using the Link-Local Option
 Don't have a global routable prefix on your network. Still want to see how many IPv6 enabled hosts are ready for the IPv6 network? The link-local option, -L, will print only the discovered hosts (shown with Dual Stack option)
 
 ```
@@ -83,7 +83,7 @@ fe80::a00:27ff:fe21:e445	10.1.1.123
 -- Pau
 ```
 
-**Discovery with Dual Stack**
+### Discovery with Dual Stack
 For those networks which are running Dual Stack, there is an option to print IPv4 addresses next to discovered IPv6 hosts.
 
 ```
@@ -126,7 +126,7 @@ fe80::a00:27ff:fe21:e445	10.1.1.123
 -- Pau
 ```
 
-**Quiet mode for Scripting**
+### Quiet mode for Scripting
 A quiet mode for scripting, or integration into your favourite IPAM software
 
 ```
@@ -158,6 +158,7 @@ $ ./v6disc.sh -q
 ## Motivation
 
 There are two reasons to use `v6disc.sh`
+
 1. Quickly Scan an IPv6 network
 2. Auto Discovery of IPv6 hosts on the network (e.g. for IPAM)
 
