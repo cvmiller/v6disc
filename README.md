@@ -5,7 +5,7 @@ A shell script designed for IPv6 automatic discovery of hosts, with the option t
 
 ## Examples
 
-###Help
+####Help
 
 ```
 $ ./v6disc.sh -h
@@ -19,7 +19,7 @@ $ ./v6disc.sh -h
 	-q  quiet, just print discovered hosts
 ```
 
-### Auto detecting interfaces and discovering hosts
+#### Auto detecting interfaces and discovering hosts
 
 ```
 $ ./v6disc.sh 
@@ -61,7 +61,7 @@ fe80::a00:27ff:fe21:e445
 -- Pau
 ```
 
-### Using the Link-Local Option
+#### Using the Link-Local Option
 Don't have a global routable prefix on your network. Still want to see how many IPv6 enabled hosts are ready for the IPv6 network? The link-local option, -L, will print only the discovered hosts (shown with Dual Stack option)
 
 ```
@@ -83,7 +83,7 @@ fe80::a00:27ff:fe21:e445	10.1.1.123
 -- Pau
 ```
 
-### Discovery with Dual Stack
+#### Discovery with Dual Stack
 For those networks which are running Dual Stack, there is an option to print IPv4 addresses next to discovered IPv6 hosts.
 
 ```
@@ -126,7 +126,7 @@ fe80::a00:27ff:fe21:e445	10.1.1.123
 -- Pau
 ```
 
-### Quiet mode for Scripting
+#### Quiet mode for Scripting
 A quiet mode for scripting, or integration into your favourite IPAM software
 
 ```
@@ -154,15 +154,14 @@ $ ./v6disc.sh -q
 ```
 
 
-
 ## Motivation
 
 There are two reasons to use `v6disc.sh`
 
-1. Quickly Scan an IPv6 network
+1. Scan an IPv6 network 700,000 times faster than `nmap`
 2. Auto Discovery of IPv6 hosts on the network (e.g. for IPAM)
 
-With 18,446,744,073,709,551,616 (2^64) potential addresses on a LAN segment, the old brute force method of scanning every address (e.g. with nnap) quickly becomes impractical. Even with version 7 of `nmap`, scanning a /64 still **takes a week**! `v6disc.sh` can scan a /64 less than **2 seconds**.
+With 18,446,744,073,709,551,616 (2^64) potential addresses on a LAN segment, the old brute force method of scanning every address (e.g. with nnap) quickly becomes impractical. Even with version 7 of `nmap`, scanning a /64 still **takes a week**! `v6disc.sh` scans a /64 less than **2 seconds**.
 
 **IPv6 under the hood**
 Understanding a little more about how IPv6 works, that each IPv6 node joins the multicast IPv6 all_notes group (FF02::1), one only needs to ping6 this group to determine which hosts are on the link. However, that only yields link-local addresses.
