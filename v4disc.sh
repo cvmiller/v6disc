@@ -7,11 +7,11 @@
 
 #	
 #	Assumptions:
-#		IPv4 subnet starts with .1
+#		
 #
 #
-#	TODO: 
-#
+#	Limitations: 
+#		only ipv4 cidr /23, /24, 25 supported
 #
 
 
@@ -26,7 +26,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=0.90
+VERSION=0.91
 
 # initialize some vars
 hostlist=""
@@ -82,16 +82,45 @@ fi
 
 function log {
 	# echo string if not quiet
-	if [ $QUIET -eq 0 ]; then echo $1; fi
+	if (( $QUIET == 0 )); then echo $1; fi
 }
 
 # get broadcast address
-log "-- Detecting broadcast address"
-broadcast_addr=$($ip addr show dev $INTERFACE | grep 'inet ' | cut -d " " -f 8 )
-b_subnet=$(echo $broadcast_addr | cut -d "." -f 1,2,3)
-e_subnet=$(echo $broadcast_addr | cut -d "." -f 4)
-log "INTF:$INTERFACE	BRD:$broadcast_addr	"
+log "-- Detecting subnet address space"
+this_addr=$($ip addr show dev $INTERFACE | grep 'inet ' | cut -d " " -f 6 | cut -d "/" -f 1 )
+root_subnet=$(echo $this_addr | cut -d "." -f 1,2)
+subnet_4=$(echo $this_addr | cut -d "." -f 4)
+subnet_3=$(echo $this_addr | cut -d "." -f 3)
 
+net_mask=$($ip addr show dev $INTERFACE | grep 'inet ' | cut -d " " -f 6 | cut -d "/" -f 2 )
+log "INTF:$INTERFACE	ADDR:$this_addr	CIDR=$net_mask"
+
+#default start
+start_subnet=1
+
+case $net_mask in
+	24) start_subnet=1
+		START=1
+		END=255
+		;;
+	25) START=1
+		END=127
+		if (( $subnet_4 > 128 )); then 
+			start_subnet=129
+			START=129
+			END=255
+		fi
+		;;
+	23) 
+		if (( (($subnet_3/2))==1 )); then
+			let subnet_3-=1
+		fi
+		START=1
+		END=511
+		;;
+esac
+
+if (( $DEBUG == 1 )); then echo "DEBUG: start=$START  end=$END"; fi
 
 # fill arp table
 log "-- Pinging Subnet Addresses"
@@ -100,19 +129,29 @@ log "-- Pinging Subnet Addresses"
 # Broadcast ping does not completely fill arp table with entires
 # Use loop to initiate pings, IPv4 subnets are small
 #
-START=1
-END=$e_subnet
-for (( j=$START; j<$END; j++ ))
+i=$subnet_3
+j=$START
+for (( k=$START; k<$END; k++ ))
 do
-	#z=$(ping -c 1 10.1.1.$j  2>/dev/null &)
-	#if [ $DEBUG -eq 0 ]; then echo $z; fi
-	if [ $DEBUG -eq 0 ]; then
-		ping -c 1 $b_subnet.$j  1>/dev/null 2>/dev/null &
+	# cover /23 
+	if (( $k > 255 )); then 
+		let i=subnet_3+1
+		let j=k-255
 	else
-		ping -c 1 $b_subnet.$j  2>/dev/null &
+		let j=$k
+	fi
+	
+	#z=$(ping -c 1 10.1.1.$k  2>/dev/null &)
+	if (( $DEBUG == 0 )); then
+		ping -c 1 $root_subnet.$i.$j  1>/dev/null 2>/dev/null &
+	else
+		#echo $root_subnet.$i.$j
+		ping -c 1 $root_subnet.$i.$j  2>/dev/null &
 	fi
 
 done
+
+
 
 # wait for pings to finish
 sleep 1

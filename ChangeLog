@@ -1,5 +1,9 @@
 All changes by Craig Miller cvmiller at gmail dot com
 
+26 December 2015	v4disc.sh v0.91
+	Added support for IPv4 cidr /23, /24, /25 networks
+	Updated README.md with new support
+
 23 December 2015	v0.92
 	Added nmap option -N
 		When root, nmap will add -O (OS identification)
