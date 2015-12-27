@@ -18,7 +18,7 @@ Each IPv6 node joins the multicast IPv6 all_notes group (FF02::1), one only need
 Also understanding how SLAAC addresses are formed from MAC addresses, the v6disc script can "guess" the globally routeable addresses of each host.
 
 ####Why Bash?
-Bash is terrible at string handling, why write this script in bash? Because I wanted it to run on my router (OpenWRT) with the minimal amount of dependencies, and just about every where else. It is possible to run Python on OpenWRT, but Python requires more storage (more packages) than just bash.
+Bash is terrible at string handling, why write this script in bash? Because I wanted it to run on my router (OpenWRT), and just about every where else, with the minimal amount of dependencies. It is possible to run Python on OpenWRT, but Python requires more storage (more packages) than just bash.
 
 ## Examples
 
