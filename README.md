@@ -1,6 +1,6 @@
 ## Synopsis
 
-A shell script to quickly & automatically discovery IPv6 hosts, with the option to ping or run nmap against discovered hosts.
+A shell script to quickly & automatically discover IPv6 hosts, with the option to ping or run nmap against discovered hosts.
 
 
 ## Motivation
