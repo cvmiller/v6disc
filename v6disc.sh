@@ -31,7 +31,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=0.92
+VERSION=0.93
 
 # initialize some vars
 hostlist=""
@@ -198,10 +198,10 @@ do
 	log "-- Detecting hosts on $intf link"
 
 	i=$(echo "$intf" | tr -d " ")
-	#host_list=$(ping6 -c 2 ff02::1%$i | grep icmp | sort -u  | sed -r 's;.*:(:\S+): .*;\1;' | sort -u)
+	#host_list=$(ping6 -c 2 -I $i ff02::1 | grep icmp | sort -u  | sed -r 's;.*:(:\S+): .*;\1;' | sort -u)
 	#ping6 -c 2 ff02::1%$i
 
-	host_list=$(ping6 -c 2 ff02::1%$i | egrep 'icmp|seq=' | sort -u  | sed -r 's;.*:(:[^ ]+): .*;\1;' | sort -u)
+	host_list=$(ping6 -c 2  -I $i ff02::1 | egrep 'icmp|seq=' | sort -u  | sed -r 's;.*:(:[^ ]+): .*;\1;' | sort -u)
 	if [ "$host_list" == "" ]; then
 		echo "Host detection not working, is IPv6 enabled on $intf?"
 	else

@@ -12,22 +12,22 @@ There are two reasons to use `v6disc.sh`
 
 With 18,446,744,073,709,551,616 (2^64) potential addresses on a LAN segment, the old brute force method of scanning every address (e.g. with nnap) quickly becomes impractical. Even with version 7 of `nmap`, scanning a /64 still **takes a week**! `v6disc.sh` scans a /64 less than **2 seconds**.
 
-####IPv6 under the hood
+#### IPv6 under the hood
 Each IPv6 node joins the multicast IPv6 all_notes group (FF02::1), one only needs to ping6 this group to determine which hosts are on the link. However, that only yields link-local addresses.
 
 Also understanding how SLAAC addresses are formed from MAC addresses, the v6disc script can "guess" the globally routeable addresses of each host.
 
-####Why Bash?
+#### Why Bash?
 Bash is terrible at string handling, why write this script in bash? Because I wanted it to run on my router (OpenWRT), and just about every where else, with the minimal amount of dependencies. It is possible to run Python on OpenWRT, but Python requires more storage (more packages) than just bash.
 
 ## Examples
 
-####Help
+#### Help
 
 ```
 $ ./v6disc.sh -h
 	./v6disc.sh - auto discover IPv6 hosts 
-	e.g. ./v6disc.sh -D -P 
+	e.g. ./v6disc.sh -D -p
 	-p  Ping discovered hosts
 	-i  use this interface
 	-L  show link-local only
@@ -175,10 +175,15 @@ $ ./v6disc.sh -q
 
 Copy `v6disc.sh` into your directory, and run. The script will auto detect interfaces, and run discovery on all IPv6 enabled interfaces.
 
+Copy `v4disc.sh` to the same directory, if you are interested in the Dual Stack option (-D).
+
 
 ## Dependencies
 
 Script requires bash, ip, nmap, grep, tr, sed, sort, cut, ping6 and ping (for Dual Stack). Most distros will have these already installed. Tested on OpenWRT (v15.05) after installing bash, ip, and nmap.
+
+nmap is not required if not using the -N option.
+
 
 ## Limitations
 
