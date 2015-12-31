@@ -31,7 +31,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=0.94
+VERSION=0.95
 
 # initialize some vars
 hostlist=""
@@ -189,7 +189,7 @@ do
 		# fix if double colon prefixes
 		p=$(echo $p | sed -r 's;(\w+:):[!-z]+;\1;' )
 		plist="$plist $p"
-		if (( $DEBUG == 1 ); then
+		if (( $DEBUG == 1 )); then
 			echo "DEBUG: $plist"
 		fi
 	done

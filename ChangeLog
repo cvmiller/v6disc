@@ -1,5 +1,8 @@
 All changes by Craig Miller cvmiller at gmail dot com
 
+31 December 2015	v0.95
+	Fixed typo from bash arithmetic clean up
+
 30 December 2015	v0.94
 	Cleaned up comments
 	Changed bash arithmetic conditionals to new form (better performance)
