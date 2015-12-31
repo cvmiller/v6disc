@@ -1,5 +1,9 @@
 All changes by Craig Miller cvmiller at gmail dot com
 
+30 December 2015	v0.94
+	Cleaned up comments
+	Changed bash arithmetic conditionals to new form (better performance)
+
 29 December 2015	v0.93
 	Changed ping6 of ff02::1 to work with older (2.6) linux systems
 

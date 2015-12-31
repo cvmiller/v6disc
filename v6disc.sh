@@ -31,7 +31,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=0.93
+VERSION=0.94
 
 # initialize some vars
 hostlist=""
@@ -90,9 +90,10 @@ if (( $NMAP == 1 )); then
 		echo "ERROR: nmap not found, disabling nmap option"
 		NMAP=0
 	else
+		# get nnap version, need 6+ to do OS ID
 		nmap_version=$($nmap --version | tr -d '\n' | sed -r 's;Nmap version ([0-9]).*;\1;' )
 		if (( $nmap_version > 5 )); then
-			# add OS check if root
+			# add OS check if root - OS ID requires root
 			root_check=$(id | sed -r 's;uid=([0-9]+).*;\1;')
 			if (( $root_check == 0 )); then
 				nmap_options="$nmap_options -O "
@@ -108,7 +109,10 @@ fi
 
 
 function log {
-	if [ $QUIET -eq 0 ]; then
+	#
+	#	Common print function which doesn't print when QUIET != 0
+	#
+	if (( $QUIET == 0 )); then
 		# echo string if not quiet
 		if [ "$2" == "tab" ]; then
 			echo $1 | tr ' ' '\t'
@@ -119,6 +123,9 @@ function log {
 }
 
 function 62mac {
+	#
+	#	Returns MAC address from host portion of IPv6 address
+	#
 	host=$1
 	#v6_mac=$(echo $host | cut -d ':' -f 5 )
 	v6_mac=$(echo $host | sed -r 's;.*:([^ ]+);\1;' )
@@ -127,12 +134,17 @@ function 62mac {
 }
 
 function router_addr {
-	# adjust $	host if it is a router
+	#
+	#	Check if this is the router link-local address, then return ::1 
+	#	Routers will NOT have a SLAAC address, they generate RAs, not listen to RAs
+	#
+	#	Assumption: routers are ::1
+
 	host=$1	
 	if [ "fe80:$host" == "$router_ll" ]; then
 		# try route at :1
 		host="::1"
-		if [ $DEBUG -eq 1 ]; then echo "DEBUG found the router entry"; fi
+		if (( $DEBUG == 1 )); then echo "DEBUG found the router entry"; fi
 	fi
 	echo $host
 }
@@ -143,12 +155,13 @@ if [ "$INTERFACE" == "" ]; then
 	# check interface(s) are up
 	log "-- Searching for interface(s)"
 	intf_list=""
+	# Get a list of Interfaces which are UP
 	intf_list=$($ip link | egrep -i '(state up|multicast,up)' | grep -v -i no-carrier | cut -d ":" -f 2 | cut -d "@" -f 1 )
-	if [ $DEBUG -eq 1 ]; then
+	if (( $DEBUG == 1 )); then
 		echo "DEBUG: listing interfaces $($ip link | egrep '^[0-9]+:')"
 	fi
 
-
+	# if no UP interfaces found, quit
 	if [ "$intf_list" == "" ]; then
 		echo "ERROR interface not found, sheeplessly quiting"
 		exit 1
@@ -157,19 +170,26 @@ if [ "$INTERFACE" == "" ]; then
 	fi
 fi
 
-# get prefix(s)
+
+#
+#	Repeat foreach interface found
+#
+
 for intf in $intf_list
 do
-	# get list of prefixes on intf
+	# get list of prefixes on intf, filter out temp addresses
 	prefix_list=$(ip addr show dev $intf | grep -v temp | grep inet6 | grep -v fe80 | sed -r 's;(noprefixroute|inet6|scope|global|dynamic|/64);;g' )
 	plist=""
+	# 
+	#	Massage prefix list to only the first 64 bits of each prefix found
+	#
 	for prefix in $prefix_list
 	do
 		p=$(echo $prefix | cut -d ':' -f 1,2,3,4  )
 		# fix if double colon prefixes
 		p=$(echo $p | sed -r 's;(\w+:):[!-z]+;\1;' )
 		plist="$plist $p"
-		if [ $DEBUG -eq 1 ]; then
+		if (( $DEBUG == 1 ); then
 			echo "DEBUG: $plist"
 		fi
 	done
@@ -178,64 +198,66 @@ do
 	
 	log "-- INT:$intf	prefixs:$prefix_list"
 	
-	# exit if no IPv6 prefixes on net
+	# exit this interface, if no IPv6 prefixes 
 	if [ "$prefix_list" == "" ]; then
 		log "No prefixes found."
-		if [ $LINK_LOCAL -eq 0 ]; then 
+		if (( $LINK_LOCAL == 0 )); then 
 			log "Continuing to next interface..."
 			continue
 		fi
 	fi
 
 
-	# detect router, won't have a SLAAC address
+	# detect router, won't have a SLAAC address, get router link-local from route table
 	router_ll=$($ip -6 route | grep default | grep -v unreachable | cut -d ' ' -f 3 )
 	#router_ll=$($ip -6 route | grep default | grep -v unreachable  )
-	if [ $DEBUG -eq 1 ]; then echo "Router $router_ll"; fi
+	if (( $DEBUG == 1 )); then echo "Router $router_ll"; fi
 
 
 	# detect hosts on link
 	log "-- Detecting hosts on $intf link"
 
+	# trim any spaces on interface name
 	i=$(echo "$intf" | tr -d " ")
-	#host_list=$(ping6 -c 2 -I $i ff02::1 | grep icmp | sort -u  | sed -r 's;.*:(:\S+): .*;\1;' | sort -u)
-	#ping6 -c 2 ff02::1%$i
 
+	# ping6 all_nodes address, which will return a list of link-locals on the interface
 	host_list=$(ping6 -c 2  -I $i ff02::1 | egrep 'icmp|seq=' | sort -u  | sed -r 's;.*:(:[^ ]+): .*;\1;' | sort -u)
 	if [ "$host_list" == "" ]; then
 		echo "Host detection not working, is IPv6 enabled on $intf?"
 	else
 		# Dual stack
-		if [ $DUAL_STACK -eq 1 ]; then
+		if (( $DUAL_STACK == 1 )); then
 			v4_hosts=$($v4  -6 -q -i $intf)
-			#v6_hosts=$($ip -6 neigh | grep fe80 | sort -n | cut -d " " -f1,5 | tr ' ' '|' )
 			v6_hosts=$host_list
 			for h in $v6_hosts
 			do
-				#unpack mac address
-				#v6_mac=$(echo $h | cut -d ':' -f 5 | sed -r 's;(\S)(\S)(\S)(\S);\1\2:\3\4;' )
+				#unpack mac address from link-local address
 				v6_mac=$(62mac $h)
 				#echo $v6_mac
 				# match mac address
+				#
+				#	Dual stack correlates IPv6 and IPv4 addresses by having a common MAC address
+				#
 				v4_host=$(echo $v4_hosts | tr ' ' '\n' | tr -d ':' | grep -- $v6_mac |  cut -d '|' -f 1)
 				v6_host=$(echo $h | cut -d '|' -f 1)
+				# create a tab delimited output
 				log "fe80:$v6_host  $v4_host" "tab"
 			done
 		else
 			for h in $host_list
 			do
+				# fe80 was trimmed earlier in the host detection loop, we add here for readability
 				log "fe80:$h"
 			done		
 		fi
 
 	fi; #end if host list blank
-#	done
 
 	# don't display discovered hosts, if there is no prefix
 	if [ "$prefix_list" != "" ]; then
 
 		# ping the SLAAC addresses
-		if [ $PING -eq 1 ]; then
+		if (( $PING == 1 )); then
 			log "-- Ping6ing discovered hosts"
 		else
 			log "-- Discovered hosts"
@@ -243,7 +265,7 @@ do
 
 		# flag hoststr if ping or nmap
 		let options_sum=$PING+$NMAP
-		if [ $options_sum -gt 0 ]; then
+		if (( $options_sum > 0 )); then
 			hoststr="-- HOST:"
 		else
 			hoststr=""
@@ -254,33 +276,32 @@ do
 			for host in $host_list
 			do	
 				# print spacer
-				if [ $options_sum -ne 0 ]; then
+				if (( $options_sum != 0 )); then
 					log " "
 				fi		
 				# list hosts found
-				if [ $DUAL_STACK -eq 1 ]; then
+				if (( $DUAL_STACK == 1 )); then
 					#v6_mac=$(echo $host | cut -d ':' -f 5 )
+					# pull MAC from IPv6 address
 					v6_mac=$(62mac $host)
-
+					# compare with IPv4 list (which includes MACs)
 					v4_host=$(echo $v4_hosts | tr ' ' '\n' | tr -d ':' | grep -- $v6_mac | cut -d '|' -f 1 )
 					echo "$hoststr$prefix$(router_addr $host)	$v4_host"
 				else
 					echo "$hoststr$prefix$(router_addr $host)"
 				fi
 
-				if [ $PING -eq 1 ]; then
+				if (( $PING == 1 )); then
 					# ping6 hosts discovered
 					ping6 -c1 $prefix$(router_addr $host)
 				fi
-				if [ $NMAP -eq 1 ]; then
+				if (( $NMAP == 1 )); then
 					# scanning hosts discovered with nmap
 					$nmap $nmap_options "$prefix$(router_addr $host)"
 				fi
 
-				
-
-			done
-		done
+			done; #for host
+		done; #for prefix
 	fi; # if prefix_list not empty
 #nd for intf_list
 done
