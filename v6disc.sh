@@ -31,7 +31,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=0.95
+VERSION=0.96
 
 # initialize some vars
 hostlist=""
@@ -47,7 +47,7 @@ QUIET=0
 ip="ip"
 v4="./v4disc.sh"
 nmap="nmap"
-nmap_options=" -6 -sT "
+nmap_options=" -6 -sT -F "
 
 DEBUG=0
 
@@ -115,9 +115,9 @@ function log {
 	if (( $QUIET == 0 )); then
 		# echo string if not quiet
 		if [ "$2" == "tab" ]; then
-			echo $1 | tr ' ' '\t'
+			echo -e $1 | tr ' ' '\t'
 		else
-			echo $1
+			echo -e $1
 		fi
 	fi
 }
@@ -261,7 +261,8 @@ do
 				for h in $host_list
 				do
 					# scanning hosts discovered with nmap
-					$nmap $nmap_options -F -e $intf "fe80:$h"
+					log "\n-- HOST:fe80:$h"
+					$nmap $nmap_options "fe80:$h%$intf"
 				done
 			fi
 		fi

@@ -4,6 +4,9 @@ All changes by Craig Miller cvmiller at gmail dot com
 	Happy New Year
 	Added nmap scanning of link-local only networks with -L -N
 		For networks which have no global prefix (e.g. IPv6 not turned on)
+		Fixed interaction with nmap version 5.x
+		Added '-F' or fast parameter to nmap to speed up the scan
+			This can be changed in variable $nmap_options
 	Removed old README, refer to README.md for current info
 	
 31 December 2015	v0.95
