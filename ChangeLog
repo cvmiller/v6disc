@@ -1,5 +1,11 @@
 All changes by Craig Miller cvmiller at gmail dot com
 
+3 January 2016 		v.96
+	Happy New Year
+	Added nmap scanning of link-local only networks with -L -N
+		For networks which have no global prefix (e.g. IPv6 not turned on)
+	Removed old README, refer to README.md for current info
+	
 31 December 2015	v0.95
 	Fixed typo from bash arithmetic clean up
 

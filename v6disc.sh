@@ -227,6 +227,9 @@ do
 	else
 		# Dual stack
 		if (( $DUAL_STACK == 1 )); then
+			#
+			# Detect IPv6 addresses by ipv4 pinging subnet
+			#
 			v4_hosts=$($v4  -6 -q -i $intf)
 			v6_hosts=$host_list
 			for h in $v6_hosts
@@ -249,9 +252,22 @@ do
 				# fe80 was trimmed earlier in the host detection loop, we add here for readability
 				log "fe80:$h"
 			done		
+		fi; #end of dual stack
+		#
+		#	Allow running nmap on link-local only addresses with -L -N
+		#
+		if [ "$prefix_list" == "" ] && (( $LINK_LOCAL == 1 )); then
+			if (( $NMAP == 1 )); then
+				for h in $host_list
+				do
+					# scanning hosts discovered with nmap
+					$nmap $nmap_options -F -e $intf "fe80:$h"
+				done
+			fi
 		fi
 
 	fi; #end if host list blank
+
 
 	# don't display discovered hosts, if there is no prefix
 	if [ "$prefix_list" != "" ]; then
