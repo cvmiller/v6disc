@@ -31,7 +31,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=0.96
+VERSION=0.97
 
 # initialize some vars
 hostlist=""
@@ -220,10 +220,16 @@ do
 	# trim any spaces on interface name
 	i=$(echo "$intf" | tr -d " ")
 
+	# set rtn code to pipefail (in case ping6 fails)
+	set -o pipefail
 	# ping6 all_nodes address, which will return a list of link-locals on the interface
 	host_list=$(ping6 -c 2  -I $i ff02::1 | egrep 'icmp|seq=' | sort -u  | sed -r 's;.*:(:[^ ]+): .*;\1;' | sort -u)
+	return_code=$?
+	#
+	#	Check ping6 output, if empty, something is wrong
+	#
 	if [ "$host_list" == "" ]; then
-		echo "Host detection not working, is IPv6 enabled on $intf?"
+		echo -e "Oops! Host detection not working.\n  Is IPv6 enabled on $intf?\n  ip6tables blocking ping6?"
 	else
 		# Dual stack
 		if (( $DUAL_STACK == 1 )); then
