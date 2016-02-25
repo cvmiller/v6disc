@@ -13,7 +13,7 @@
 #
 #	TODO: 
 #		print only hosts validated with ping
-#		x Add nmap option
+#		
 #		
 
 
@@ -31,10 +31,9 @@ function usage {
 	       exit 1
            }
 
-VERSION=0.97
+VERSION=0.98
 
 # initialize some vars
-hostlist=""
 INTERFACE=""
 LINK_LOCAL=0
 DUAL_STACK=0
@@ -42,6 +41,7 @@ NMAP=0
 PING=0
 DEBUG=0
 QUIET=0
+host_list=""
 
 # commands needed for this script
 ip="ip"
@@ -115,9 +115,9 @@ function log {
 	if (( $QUIET == 0 )); then
 		# echo string if not quiet
 		if [ "$2" == "tab" ]; then
-			echo -e $1 | tr ' ' '\t'
+			echo -e "$1" | tr ' ' '\t'
 		else
-			echo -e $1
+			echo -e "$1"
 		fi
 	fi
 }
@@ -128,9 +128,9 @@ function 62mac {
 	#
 	host=$1
 	#v6_mac=$(echo $host | cut -d ':' -f 5 )
-	v6_mac=$(echo $host | sed -r 's;.*:([^ ]+);\1;' )
+	v6_mac=$(echo "$host" | sed -r 's;.*:([^ ]+);\1;' )
 	# return v6_mac value
-	echo $v6_mac
+	echo "$v6_mac"
 }
 
 function router_addr {
@@ -178,23 +178,23 @@ fi
 for intf in $intf_list
 do
 	# get list of prefixes on intf, filter out temp addresses
-	prefix_list=$(ip addr show dev $intf | grep -v temp | grep inet6 | grep -v fe80 | sed -r 's;(noprefixroute|inet6|scope|global|dynamic|/64);;g' )
+	prefix_list=$(ip addr show dev "$intf" | grep -v temp | grep inet6 | grep -v fe80 | sed -r 's;(noprefixroute|inet6|scope|global|dynamic|/64);;g' )
 	plist=""
 	# 
 	#	Massage prefix list to only the first 64 bits of each prefix found
 	#
 	for prefix in $prefix_list
 	do
-		p=$(echo $prefix | cut -d ':' -f 1,2,3,4  )
+		p=$(echo "$prefix" | cut -d ':' -f 1,2,3,4  )
 		# fix if double colon prefixes
-		p=$(echo $p | sed -r 's;(\w+:):[!-z]+;\1;' )
+		p=$(echo "$p" | sed -r 's;(\w+:):[!-z]+;\1;' )
 		plist="$plist $p"
 		if (( $DEBUG == 1 )); then
 			echo "DEBUG: $plist"
 		fi
 	done
 	# remove duplicate prefixes
-	prefix_list=$(echo $plist | tr ' ' '\n' | sort -u )
+	prefix_list=$(echo "$plist" | tr ' ' '\n' | sort -u )
 	
 	log "-- INT:$intf	prefixs:$prefix_list"
 	
@@ -223,7 +223,7 @@ do
 	# set rtn code to pipefail (in case ping6 fails)
 	set -o pipefail
 	# ping6 all_nodes address, which will return a list of link-locals on the interface
-	host_list=$(ping6 -c 2  -I $i ff02::1 | egrep 'icmp|seq=' | sort -u  | sed -r 's;.*:(:[^ ]+): .*;\1;' | sort -u)
+	host_list=$(ping6 -c 2  -I "$i" ff02::1 | egrep 'icmp|seq=' | sort -u  | sed -r 's;.*:(:[^ ]+): .*;\1;' | sort -u)
 	return_code=$?
 	#
 	#	Check ping6 output, if empty, something is wrong
@@ -236,19 +236,19 @@ do
 			#
 			# Detect IPv6 addresses by ipv4 pinging subnet
 			#
-			v4_hosts=$($v4  -6 -q -i $intf)
+			v4_hosts=$($v4  -6 -q -i "$intf")
 			v6_hosts=$host_list
 			for h in $v6_hosts
 			do
 				#unpack mac address from link-local address
-				v6_mac=$(62mac $h)
+				v6_mac=$(62mac "$h")
 				#echo $v6_mac
 				# match mac address
 				#
 				#	Dual stack correlates IPv6 and IPv4 addresses by having a common MAC address
 				#
-				v4_host=$(echo $v4_hosts | tr ' ' '\n' | tr -d ':' | grep -- $v6_mac |  cut -d '|' -f 1)
-				v6_host=$(echo $h | cut -d '|' -f 1)
+				v4_host=$(echo "$v4_hosts" | tr ' ' '\n' | tr -d ':' | grep -- "$v6_mac" |  cut -d '|' -f 1)
+				v6_host=$(echo "$h" | cut -d '|' -f 1)
 				# create a tab delimited output
 				log "fe80:$v6_host  $v4_host" "tab"
 			done
@@ -268,7 +268,7 @@ do
 				do
 					# scanning hosts discovered with nmap
 					log "\n-- HOST:fe80:$h"
-					$nmap $nmap_options "fe80:$h%$intf"
+					$nmap "$nmap_options" "fe80:$h%$intf"
 				done
 			fi
 		fi
@@ -306,21 +306,21 @@ do
 				if (( $DUAL_STACK == 1 )); then
 					#v6_mac=$(echo $host | cut -d ':' -f 5 )
 					# pull MAC from IPv6 address
-					v6_mac=$(62mac $host)
+					v6_mac=$(62mac "$host")
 					# compare with IPv4 list (which includes MACs)
-					v4_host=$(echo $v4_hosts | tr ' ' '\n' | tr -d ':' | grep -- $v6_mac | cut -d '|' -f 1 )
-					echo "$hoststr$prefix$(router_addr $host)	$v4_host"
+					v4_host=$(echo "$v4_hosts" | tr ' ' '\n' | tr -d ':' | grep -- "$v6_mac" | cut -d '|' -f 1 )
+					echo "$hoststr$prefix$(router_addr "$host")	$v4_host"
 				else
-					echo "$hoststr$prefix$(router_addr $host)"
+					echo "$hoststr$prefix$(router_addr "$host")"
 				fi
 
 				if (( $PING == 1 )); then
 					# ping6 hosts discovered
-					ping6 -c1 $prefix$(router_addr $host)
+					ping6 -c1 $prefix$(router_addr "$host")
 				fi
 				if (( $NMAP == 1 )); then
 					# scanning hosts discovered with nmap
-					$nmap $nmap_options "$prefix$(router_addr $host)"
+					$nmap "$nmap_options" "$prefix$(router_addr "$host")"
 				fi
 
 			done; #for host
