@@ -1,5 +1,16 @@
 #!/bin/bash
 
+##################################################################################
+#
+#  Copyright (C) 2015-2016 Craig Miller
+#
+#  See the file "LICENSE" for information on usage and redistribution
+#  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+#  Distributed under GPLv2 License
+#
+##################################################################################
+
+
 #
 #	Script auto discovers IPv6 hosts on interface, and ping6 them
 #
@@ -31,7 +42,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=0.98
+VERSION=1.0
 
 # initialize some vars
 INTERFACE=""

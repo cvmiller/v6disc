@@ -1,5 +1,15 @@
 #!/bin/bash
 
+##################################################################################
+#
+#  Copyright (C) 2015-2016 Craig Miller
+#
+#  See the file "LICENSE" for information on usage and redistribution
+#  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
+#  Distributed under GPLv2 License
+#
+##################################################################################
+
 #
 #	Script auto discovers IPv4 hosts on interface
 #
@@ -7,7 +17,7 @@
 
 #	
 #	Assumptions:
-#		
+#		Called by v6disc.sh
 #
 #
 #	Limitations: 
@@ -26,7 +36,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=0.91
+VERSION=0.92
 
 # initialize some vars
 hostlist=""
