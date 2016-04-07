@@ -30,7 +30,7 @@
 
 function usage {
                echo "	$0 - auto discover IPv6 hosts "
-	       echo "	e.g. $0 -D -P "
+	       echo "	e.g. $0 -D -p "
 	       echo "	-p  Ping discovered hosts"
 	       echo "	-i  use this interface"
 	       echo "	-L  show link-local only"
@@ -42,7 +42,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=1.0
+VERSION=1.0.1
 
 # initialize some vars
 INTERFACE=""
