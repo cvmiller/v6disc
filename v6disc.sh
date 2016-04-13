@@ -24,6 +24,7 @@
 #
 #	TODO: 
 #		print only hosts validated with ping
+#		deal with multiple default routes on the same interface
 #		
 #		
 
@@ -42,7 +43,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=1.1.a
+VERSION=1.1
 
 # initialize some vars
 INTERFACE=""
@@ -250,6 +251,7 @@ do
 	router_ll=$($ip -6 route | grep default | grep $intf | grep -v unreachable | sed -r 's/.*(fe80::[^ ]*).*/\1/' | sort -u )
 
 	if [ -z "$router_ll" ]; then
+		# no default route, get router's link-local address
 		router_local_addr=$(ip -6 addr show dev $intf | grep ::1)
 		if [ -n "$router_local_addr" ]; then 
 			router_ll=$(ip -6 addr show dev $intf | grep fe80 | sed -r 's;.*(fe80::[^ ]*)/64.*;\1;')

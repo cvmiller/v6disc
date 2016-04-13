@@ -5,10 +5,11 @@ A shell script to quickly & automatically discover IPv6 hosts, with the option t
 
 ## Motivation
 
-There are two reasons to use `v6disc.sh`
+There are three reasons to use `v6disc.sh`
 
 1. Scan an IPv6 network 700,000 times faster than `nmap`
 2. Auto Discovery of IPv6 hosts on the network (e.g. for IPAM)
+3. Quickly figure out what IPv6 is already on your network.
 
 With 18,446,744,073,709,551,616 (2^64) potential addresses on a LAN segment, the old brute force method of scanning every address (e.g. with nnap) quickly becomes impractical. Even with version 7 of `nmap`, scanning a /64 still **takes a week**! `v6disc.sh` scans a /64 less than **2 seconds**.
 
@@ -17,8 +18,12 @@ Each IPv6 node joins the multicast IPv6 all_notes group (FF02::1), one only need
 
 Also understanding how SLAAC addresses are formed from MAC addresses, the v6disc script can "guess" the globally routeable addresses of each host.
 
+If multiple interfaces are detected, script will also query neighbour table, and display DHCPv6 addresses from the table. This works best when run on a router, since DHCPv6 hosts will usually request data through the router.
+
 #### Why Bash?
 Bash is terrible at string handling, why write this script in bash? Because I wanted it to run on my router (OpenWRT), and just about every where else, with the minimal amount of dependencies. It is possible to run Python on OpenWRT, but Python requires more storage (more packages) than just bash.
+
+Added colour headings (as of version 1.1) to make output more readable. Colour can be disabled by piping to cat e.g. `v6disc.sh | cat`
 
 ## Examples
 
@@ -180,7 +185,7 @@ Copy `v4disc.sh` to the same directory, if you are interested in the Dual Stack 
 
 ## Dependencies
 
-Script requires bash, ip, nmap, grep, tr, sed, sort, cut, ping6 and ping (for Dual Stack). Most distros will have these already installed. Tested on OpenWRT (v15.05) after installing bash, ip, and nmap.
+Script requires bash, ip, nmap, grep, tr, sed, sort, cut, ping6 and ping (for Dual Stack). Most distros will have these already installed. Tested on OpenWRT (v15.05 and 15.05.1) after installing bash, ip, and nmap.
 
 nmap is not required if not using the -N option.
 
@@ -200,4 +205,3 @@ All code by Craig Miller cvmiller at gmail dot com. But ideas, and ports to othe
 ## License
 
 This project is open source, under the GPLv2 license (see [LICENSE](LICENSE))
-
