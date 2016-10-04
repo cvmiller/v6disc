@@ -194,6 +194,8 @@ nmap is not required if not using the -N option.
 
 The script assumes /64 subnets (as all end stations should be on a /64). Discovers only the SLAAC address (as defined by RFC 4862), and does not attempt to guess the temporary addresses. Only decects hosts on locally attached network (will not cross routers, but can run on OpenWRT router).
 
+Does **not** support RFC 7217 (A Method for Generating Semantically Opaque Interface Identifiers with IPv6 Stateless Address Autoconfiguration (SLAAC)) Globally Unique Addresses (GUA) (e.g. Mac OSX Sierra, aka 10.12). It should correctly detect RFC 7217 Link-Local addresses.
+
 Dual Stack option only supports IPv4 subnet masks of /23, /24, /25.
 
 
