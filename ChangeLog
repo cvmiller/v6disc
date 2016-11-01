@@ -1,5 +1,15 @@
 All changes by Craig Miller cvmiller at gmail dot com
 
+31 October 2016		v1.2
+	Happy Halloween
+	Added avahi/bonjour search for IPv6 hosts (if avahi is installed)
+
+13 April 2016		v1.1
+	Added colour headings, and NDP table lookup
+
+18 March 2016		v1.0
+	Added GPL banner to script
+	
 3 January 2016 		v.96
 	Happy New Year
 	Added nmap scanning of link-local only networks with -L -N
