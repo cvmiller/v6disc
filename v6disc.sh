@@ -43,7 +43,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=1.1
+VERSION=1.2
 
 # initialize some vars
 INTERFACE=""
@@ -57,12 +57,18 @@ NOCOLOUR=0
 host_list=""
 ll_host_list=""
 interface_count=0
+# is avahi/bonjour available?
+AVAHI=0
 
 # commands needed for this script
 ip="ip"
 v4="./v4disc.sh"
 nmap="nmap"
 nmap_options=" -6 -sT -F "
+
+avahi="avahi-browse"
+avahi_resolve="avahi-resolve-host-name"
+
 
 DEBUG=0
 
@@ -117,6 +123,16 @@ if (( $NMAP == 1 )); then
 		if (( $DEBUG == 1 )); then echo "DEBUG: nmap version:$nmap_version options:$nmap_options"; fi
 	fi; #which nmap
 fi
+
+#check for avahi/bonjour
+check=$(which $avahi)
+	if (( $? == 1 )); then
+		echo "WARN: avahi utis not found, slipping mDNS check"
+		AVAHI=0
+	else
+		AVAHI=1
+	fi
+
 
 
 
@@ -335,7 +351,7 @@ do
 		if (( $PING == 1 )); then
 			log "-- Ping6ing discovered hosts"
 		else
-			log "-- Discovered hosts"
+			log "-- Discovered hosts for prefix:$prefix"
 		fi
 
 		# flag hoststr if ping or nmap
@@ -350,7 +366,6 @@ do
 		for prefix in $prefix_list
 		do
 			
-		
 			#
 			#	Look at neighbor cache, to pick up any DHCPv6 addresses
 			#
@@ -364,6 +379,10 @@ do
 			else
 				host_list=$ll_host_list
 			fi
+			
+			#
+			# Resolve MAC addresses in host_list
+			#
 			for host in $host_list
 			do	
 				# print spacer
@@ -380,7 +399,8 @@ do
 					v4_host=$(echo "$v4_hosts" | tr ' ' '\n'  | grep -- "$v6_mac" | cut -d '|' -f 1 )
 					echo "$hoststr$prefix$(router_addr "$host")	$v4_host"
 				else
-					echo "$hoststr$prefix$(router_addr "$host")"
+					hostaddr=$hoststr$prefix$(router_addr "$host")
+					echo "$hostaddr"
 				fi
 
 				if (( $PING == 1 )); then
@@ -394,6 +414,26 @@ do
 
 			done; #for host
 		done; #for prefix
+		#
+		# Do avahi/bonjour mDNS discovery
+		#
+		if (( $AVAHI == 1 )); then
+			log "-- Displaying avahi discovered hosts"
+			avahi_list=$($avahi -at 2>/dev/null | grep IPv6 | awk '{print $4}'  | grep -v 'Fail' | sort -u )
+			if (( $DEBUG == 1 )); then echo "DEBUG: avahi_list: $avahi_list"; fi
+			#host_list="$host_list $avahi_list"
+			# show avahi discovered list
+			for ahost in $avahi_list
+			do
+				avahi_host=$($avahi_resolve -6n "$ahost".local 2>/dev/null)
+				if (( QUIET == 0 )); then
+					# format address then hostname
+					echo "$avahi_host" | awk '{printf "%-40s %s\n",$2,$1}'
+				else
+					echo "$avahi_host" | awk '{print $2}'
+				fi
+			done; #for ahost
+		fi
 	fi; # if prefix_list not empty
 #nd for intf_list
 done

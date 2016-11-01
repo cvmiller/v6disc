@@ -16,7 +16,7 @@ With 18,446,744,073,709,551,616 (2^64) potential addresses on a LAN segment, the
 #### IPv6 under the hood
 Each IPv6 node joins the multicast IPv6 all_notes group (FF02::1), one only needs to ping6 this group to determine which hosts are on the link. However, that only yields link-local addresses.
 
-Also understanding how SLAAC addresses are formed from MAC addresses, the v6disc script can "guess" the globally routeable addresses of each host.
+Also understanding how SLAAC addresses are formed from MAC addresses, the v6disc script can "guess" the globally routeable addresses of each host (based on RFC 4862). With the advent of [RFC 7217](https://tools.ietf.org/html/rfc7217), a cryptographic method of creating a Global Unicast Address (GUA), another method using **avahi** or bonjour is used (if installed).
 
 If multiple interfaces are detected, script will also query neighbour table, and display DHCPv6 addresses from the table. This works best when run on a router, since DHCPv6 hosts will usually request data through the router.
 
@@ -52,11 +52,11 @@ Found interface(s): eth0
 fe80::129a:ddff:fe54:b634
 fe80::203:93ff:fe67:4362
 fe80::211:24ff:fece:f1a
-fe80::211:24ff:fee1:dbc8
+fe80::211:24ff:fee1:dbd8
 fe80::224:a5ff:fef1:7ca
 fe80::225:31ff:fe02:aecb
 fe80::226:bbff:fe1e:7e15
-fe80::256:b3ff:fe04:cbe5
+fe80::256:b3ff:fe04:c8e5
 fe80::280:77ff:feeb:1dde
 fe80::a00:27ff:fe21:e445
 -- Discovered hosts
@@ -67,19 +67,24 @@ fe80::a00:27ff:fe21:e445
 2607:c000:815f:5600::1
 2607:c000:815f:5600:225:31ff:fe02:aecb
 2607:c000:815f:5600:226:bbff:fe1e:7e15
-2607:c000:815f:5600:256:b3ff:fe04:cbe5
+2607:c000:815f:5600:256:b3ff:fe04:c8e5
 2607:c000:815f:5600:280:77ff:feeb:1dde
 2607:c000:815f:5600:a00:27ff:fe21:e445
 2001:470:1d:489:129a:ddff:fe54:b634
 2001:470:1d:489:203:93ff:fe67:4362
 2001:470:1d:489:211:24ff:fece:f1a
-2001:470:1d:489:211:24ff:fee1:dbc8
+2001:470:1d:489:211:24ff:fee1:dbd8
 2001:470:1d:489::1
 2001:470:1d:489:225:31ff:fe02:aecb
 2001:470:1d:489:226:bbff:fe1e:7e15
 2001:470:1d:489:256:b3ff:fe04:cbe5
 2001:470:1d:489:280:77ff:feeb:1dde
 2001:470:1d:489:a00:27ff:fe21:e445
+-- Displaying avahi discovered hosts 
+2001:470:1d:489:211:24ff:fee1:dbd8       halaconia.local
+2001:470:1d:489::46f                     hau.local
+fe80::129a:ddff:feae:8166                kukui.local
+2001:470:1d:489:4459:8014:e3db:c8fe      xubuntu-VirtualBox.local
 -- Pau
 ```
 
@@ -185,16 +190,17 @@ Copy `v4disc.sh` to the same directory, if you are interested in the Dual Stack 
 
 ## Dependencies
 
-Script requires bash, ip, nmap, grep, tr, sed, sort, cut, ping6 and ping (for Dual Stack). Most distros will have these already installed. Tested on OpenWRT (v15.05 and 15.05.1) after installing bash, ip, and nmap.
+Script requires bash, ip, grep, tr, sed, sort, cut, awk, ping6 and ping (for Dual Stack). Most distros will have these already installed. `nmap` is required if using the `-N` option. Tested on OpenWRT (v15.05 and 15.05.1) after installing bash, ip, and nmap.
 
-nmap is not required if not using the -N option.
+If avahi utils are detected, `v6disc.sh` will also use *bonjour* to detect hosts (as of version 1.2)
+
 
 
 ## Limitations
 
 The script assumes /64 subnets (as all end stations should be on a /64). Discovers only the SLAAC address (as defined by RFC 4862), and does not attempt to guess the temporary addresses. Only decects hosts on locally attached network (will not cross routers, but can run on OpenWRT router).
 
-Does **not** support RFC 7217 (A Method for Generating Semantically Opaque Interface Identifiers with IPv6 Stateless Address Autoconfiguration (SLAAC)) Globally Unique Addresses (GUA) (e.g. Mac OSX Sierra, aka 10.12). It should correctly detect RFC 7217 Link-Local addresses.
+Does **not** support RFC 7217 (A Method for Generating Semantically Opaque Interface Identifiers with IPv6 Stateless Address Autoconfiguration (SLAAC)) Globally Unique Addresses (GUA) (e.g. Mac OSX Sierra, aka 10.12). Because RFC 7217 GUA addresses are not guessable, `v6disc.sh` will use **avahi/bonjour**, if installed, to attempt to determine GUAs. It should correctly detect RFC 7217 Link-Local addresses.
 
 Dual Stack option only supports IPv4 subnet masks of /23, /24, /25.
 
