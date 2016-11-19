@@ -1,5 +1,11 @@
 All changes by Craig Miller cvmiller at gmail dot com
 
+18 November 2016	v1.3
+	Used ping6 GUA source rather than link-local for discovery
+		This pickes up DHCPV6 and RFC 7217 addresses
+	Removed code to detect router & neighbour cache (no longer required)
+	Improved printing of columns
+
 31 October 2016		v1.2
 	Happy Halloween
 	Added avahi/bonjour search for IPv6 hosts (if avahi is installed)

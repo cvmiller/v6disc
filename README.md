@@ -14,11 +14,13 @@ There are three reasons to use `v6disc.sh`
 With 18,446,744,073,709,551,616 (2^64) potential addresses on a LAN segment, the old brute force method of scanning every address (e.g. with nnap) quickly becomes impractical. Even with version 7 of `nmap`, scanning a /64 still **takes a week**! `v6disc.sh` scans a /64 less than **2 seconds**.
 
 #### IPv6 under the hood
-Each IPv6 node joins the multicast IPv6 all_notes group (FF02::1), one only needs to ping6 this group to determine which hosts are on the link. However, that only yields link-local addresses.
+Each IPv6 node joins the multicast IPv6 all_notes group (FF02::1), one only needs to ping6 this group to determine which hosts are on the link. Pinging using the host Global Unicast Address (GUA) will yield GUAs in that prefix, including hosts which use DHCPv6. 
 
-Also understanding how SLAAC addresses are formed from MAC addresses, the v6disc script can "guess" the globally routeable addresses of each host (based on RFC 4862). With the advent of [RFC 7217](https://tools.ietf.org/html/rfc7217), a cryptographic method of creating a Global Unicast Address (GUA), another method using **avahi** or bonjour is used (if installed).
+As of version 1.3, v6disc no longer guesses SLAAC addresses based on MAC addresses (based on RFC 4862).  The script will also use **avahi** or bonjour (if installed).
 
-If multiple interfaces are detected, script will also query neighbour table, and display DHCPv6 addresses from the table. This works best when run on a router, since DHCPv6 hosts will usually request data through the router.
+With [RFC 7217](https://tools.ietf.org/html/rfc7217) (A Method for Generating Semantically Opaque Interface Identifiers with IPv6 Stateless Address Autoconfiguration (SLAAC)) the GUA is more random (e.g. Mac OSX Sierra, aka 10.12). Because RFC 7217 GUA addresses are not guessable, `v6disc.sh` uses the local GUA to discover them (as of version 1.3)
+
+If multiple interfaces are detected, script will query each interface, good for running on routers (tested on OpenWRT 15.05.1)
 
 #### Why Bash?
 Bash is terrible at string handling, why write this script in bash? Because I wanted it to run on my router (OpenWRT), and just about every where else, with the minimal amount of dependencies. It is possible to run Python on OpenWRT, but Python requires more storage (more packages) than just bash.
@@ -37,7 +39,7 @@ $ ./v6disc.sh -h
 	-i  use this interface
 	-L  show link-local only
 	-D  Dual Stack, show IPv4 addresses
-	-N  Run nmap against discovered host
+	-N  Scan with nmap -6 -sT
 	-q  quiet, just print discovered hosts
 ```
 
@@ -49,17 +51,7 @@ $ ./v6disc.sh
 Found interface(s): eth0
 -- INT:eth0 prefixs: 2607:c000:815f:5600 2001:470:1d:489
 -- Detecting hosts on eth0 link
-fe80::129a:ddff:fe54:b634
-fe80::203:93ff:fe67:4362
-fe80::211:24ff:fece:f1a
-fe80::211:24ff:fee1:dbd8
-fe80::224:a5ff:fef1:7ca
-fe80::225:31ff:fe02:aecb
-fe80::226:bbff:fe1e:7e15
-fe80::256:b3ff:fe04:c8e5
-fe80::280:77ff:feeb:1dde
-fe80::a00:27ff:fe21:e445
--- Discovered hosts
+-- Discovered hosts for prefix: 2607:c000:815f:5600 on eth0
 2607:c000:815f:5600:129a:ddff:fe54:b634
 2607:c000:815f:5600:203:93ff:fe67:4362
 2607:c000:815f:5600:211:24ff:fece:f1a
@@ -70,6 +62,7 @@ fe80::a00:27ff:fe21:e445
 2607:c000:815f:5600:256:b3ff:fe04:c8e5
 2607:c000:815f:5600:280:77ff:feeb:1dde
 2607:c000:815f:5600:a00:27ff:fe21:e445
+-- Discovered hosts for prefix: 2001:470:1d:489 on eth0
 2001:470:1d:489:129a:ddff:fe54:b634
 2001:470:1d:489:203:93ff:fe67:4362
 2001:470:1d:489:211:24ff:fece:f1a
@@ -99,9 +92,9 @@ Found interface(s): eth0
 -- Detecting hosts on eth0 link
 fe80::129a:ddff:fe54:b634	10.1.1.15
 fe80::203:93ff:fe67:4362	10.1.1.18
-fe80::211:24ff:fece:f1a	10.1.1.12
+fe80::211:24ff:fece:f1a		10.1.1.12
 fe80::211:24ff:fee1:dbc8	10.1.1.14
-fe80::224:a5ff:fef1:7ca	10.1.1.1
+fe80::224:a5ff:fef1:7ca		10.1.1.1
 fe80::225:31ff:fe02:aecb	10.1.1.9
 fe80::226:bbff:fe1e:7e15	10.1.1.23
 fe80::256:b3ff:fe04:cbe5	10.1.1.122
@@ -119,37 +112,28 @@ $ ./v6disc.sh -D
 Found interface(s): eth0
 -- INT:eth0 prefixs: 2607:c000:815f:5600 2001:470:1d:489
 -- Detecting hosts on eth0 link
-fe80::129a:ddff:fe54:b634	10.1.1.15
-fe80::203:93ff:fe67:4362	10.1.1.18
-fe80::211:24ff:fece:f1a	10.1.1.12
-fe80::211:24ff:fee1:dbc8	10.1.1.14
-fe80::224:a5ff:fef1:7ca	10.1.1.1
-fe80::225:31ff:fe02:aecb	10.1.1.9
-fe80::226:bbff:fe1e:7e15	10.1.1.23
-fe80::256:b3ff:fe04:cbe5	10.1.1.122
-fe80::280:77ff:feeb:1dde	10.1.1.13
-fe80::a00:27ff:fe21:e445	10.1.1.123
--- Discovered hosts
+-- Discovered hosts for prefix: 2607:c000:815f:5600 on eth0
 2607:c000:815f:5600:129a:ddff:fe54:b634	10.1.1.15
 2607:c000:815f:5600:203:93ff:fe67:4362	10.1.1.18
 2607:c000:815f:5600:211:24ff:fece:f1a	10.1.1.12
 2607:c000:815f:5600:211:24ff:fee1:dbc8	10.1.1.14
-2607:c000:815f:5600::1	10.1.1.1
+2607:c000:815f:5600::1					10.1.1.1
 2607:c000:815f:5600:225:31ff:fe02:aecb	10.1.1.9
 2607:c000:815f:5600:226:bbff:fe1e:7e15	10.1.1.23
 2607:c000:815f:5600:256:b3ff:fe04:cbe5	10.1.1.122
 2607:c000:815f:5600:280:77ff:feeb:1dde	10.1.1.13
 2607:c000:815f:5600:a00:27ff:fe21:e445	10.1.1.123
-2001:470:1d:489:129a:ddff:fe54:b634	10.1.1.15
-2001:470:1d:489:203:93ff:fe67:4362	10.1.1.18
-2001:470:1d:489:211:24ff:fece:f1a	10.1.1.12
-2001:470:1d:489:211:24ff:fee1:dbc8	10.1.1.14
-2001:470:1d:489::1	10.1.1.1
-2001:470:1d:489:225:31ff:fe02:aecb	10.1.1.9
-2001:470:1d:489:226:bbff:fe1e:7e15	10.1.1.23
-2001:470:1d:489:256:b3ff:fe04:cbe5	10.1.1.122
-2001:470:1d:489:280:77ff:feeb:1dde	10.1.1.13
-2001:470:1d:489:a00:27ff:fe21:e445	10.1.1.123
+-- Discovered hosts for prefix: 2001:470:1d:489 on eth0
+2001:470:1d:489:129a:ddff:fe54:b634		10.1.1.15
+2001:470:1d:489:203:93ff:fe67:4362		10.1.1.18
+2001:470:1d:489:211:24ff:fece:f1a		10.1.1.12
+2001:470:1d:489:211:24ff:fee1:dbc8		10.1.1.14
+2001:470:1d:489::1						10.1.1.1
+2001:470:1d:489:225:31ff:fe02:aecb		10.1.1.9
+2001:470:1d:489:226:bbff:fe1e:7e15		10.1.1.23
+2001:470:1d:489:256:b3ff:fe04:cbe5		10.1.1.122
+2001:470:1d:489:280:77ff:feeb:1dde		10.1.1.13
+2001:470:1d:489:a00:27ff:fe21:e445		10.1.1.123
 -- Pau
 ```
 
@@ -199,8 +183,6 @@ If avahi utils are detected, `v6disc.sh` will also use *bonjour* to detect hosts
 ## Limitations
 
 The script assumes /64 subnets (as all end stations should be on a /64). Discovers only the SLAAC address (as defined by RFC 4862), and does not attempt to guess the temporary addresses. Only decects hosts on locally attached network (will not cross routers, but can run on OpenWRT router).
-
-Does **not** support RFC 7217 (A Method for Generating Semantically Opaque Interface Identifiers with IPv6 Stateless Address Autoconfiguration (SLAAC)) Globally Unique Addresses (GUA) (e.g. Mac OSX Sierra, aka 10.12). Because RFC 7217 GUA addresses are not guessable, `v6disc.sh` will use **avahi/bonjour**, if installed, to attempt to determine GUAs. It should correctly detect RFC 7217 Link-Local addresses.
 
 Dual Stack option only supports IPv4 subnet masks of /23, /24, /25.
 

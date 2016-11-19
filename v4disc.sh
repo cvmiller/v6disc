@@ -36,7 +36,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=0.92
+VERSION=0.93
 
 # initialize some vars
 hostlist=""
@@ -128,9 +128,14 @@ case $net_mask in
 		START=1
 		END=511
 		;;
+	*) # unsupported IPv4 subnet size
+		if [ $QUIET -eq 0 ]; then echo "WARN: Unsupported subnet netmask: $net_mask"; fi
+		exit 1
+		;;
 esac
 
 if (( $DEBUG == 1 )); then echo "DEBUG: start=$START  end=$END"; fi
+
 
 # fill arp table
 log "-- Pinging Subnet Addresses"
