@@ -38,7 +38,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=0.94
+VERSION=0.95
 
 # initialize some vars
 hostlist=""
@@ -200,7 +200,7 @@ if [ -f "$OUI_FILE" ]; then
 		else
 			mac=$f
 			mac_oui=$(echo $f | tr -d ":" | cut -c '-6' | tr 'abcdef' 'ABCDEF')
-			oui=$(zgrep "^$mac_oui" "$OUI_FILE" | cut -c '7-')
+			oui=$(zcat "$OUI_FILE" | grep "^$mac_oui" | cut -c '7-')
 			#echo "$addr $mac $mac_oui $oui $i"
 			oui_table="$oui_table"$'\n'"$addr $mac $oui"
 		fi
