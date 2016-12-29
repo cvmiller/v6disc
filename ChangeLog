@@ -1,5 +1,8 @@
 All changes by Craig Miller cvmiller at gmail dot com
 
+25 December 2016	v4disc.sh	v0.94
+	Added offline OUI lookup, script will use wireshark_oui.gz if available
+
 18 November 2016	v1.3
 	Used ping6 GUA source rather than link-local for discovery
 		This pickes up DHCPV6 and RFC 7217 addresses

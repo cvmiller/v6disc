@@ -23,7 +23,9 @@
 #	Limitations: 
 #		only ipv4 cidr /23, /24, 25 supported
 #
-
+#
+#	Wireshark OUT database - https://code.wireshark.org/review/gitweb?p=wireshark.git;a=blob_plain;f=manuf
+#
 
 
 function usage {
@@ -36,7 +38,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=0.93
+VERSION=0.94
 
 # initialize some vars
 hostlist=""
@@ -46,6 +48,9 @@ PING=1
 DEBUG=0
 QUIET=0
 V6=0
+
+#OUI_FILE=oui.gz
+OUI_FILE=wireshark_oui.gz
 
 # commands needed for this script
 ip="ip"
@@ -181,8 +186,32 @@ log "-- ARP table"
 arp_table=$($ip -4 neigh | egrep -v '(INCOMPLETE|FAILED)' | cut -d " " -f 1,5 | sort -n)
 # add my_addr to arp_table
 arp_table="$arp_table"$'\n'"$my_addr $my_mac"
+
+oui_table=""
+# resolve OUI manufactorers
+if [ -f "$OUI_FILE" ]; then
+	i=0
+	m=0
+	for f in $arp_table
+	do
+		m=$(expr $i % 2 )
+		if [ $m -eq 0 ]; then
+			addr=$f
+		else
+			mac=$f
+			mac_oui=$(echo $f | tr -d ":" | cut -c '-6' | tr 'abcdef' 'ABCDEF')
+			oui=$(zgrep "^$mac_oui" "$OUI_FILE" | cut -c '7-')
+			#echo "$addr $mac $mac_oui $oui $i"
+			oui_table="$oui_table"$'\n'"$addr $mac $oui"
+		fi
+		let "i++"
+	done
+	#echo "$oui_table" | awk '{printf "%-20s %-20s %s\n",$1,$2,$3}' 
+	arp_table=$oui_table
+fi
+
 if [ $V6 -eq 0 ]; then
-	echo "$arp_table"
+	echo "$arp_table" | awk '{printf "%-20s %-20s %s\n",$1,$2,$3}' 
 else
 	echo "$arp_table" | tr ' ' '|' 
 fi
