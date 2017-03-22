@@ -38,7 +38,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=0.95
+VERSION=0.96
 
 # initialize some vars
 hostlist=""
@@ -200,6 +200,10 @@ if [ -f "$OUI_FILE" ]; then
 		else
 			mac=$f
 			mac_oui=$(echo $f | tr -d ":" | cut -c '-6' | tr 'abcdef' 'ABCDEF')
+			if [ "$mac_oui" == "70B3D5" ]; then
+				# IEEE Registered 36 bit OUI address
+				mac_oui=$(echo $f | tr -d ":" | cut -c '-9' | tr 'abcdef' 'ABCDEF')
+			fi
 			oui=$(zcat "$OUI_FILE" | grep "^$mac_oui" | cut -c '7-')
 			#echo "$addr $mac $mac_oui $oui $i"
 			oui_table="$oui_table"$'\n'"$addr $mac $oui"
