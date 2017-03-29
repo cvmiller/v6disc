@@ -21,7 +21,7 @@
 #
 #
 #	Limitations: 
-#		only ipv4 cidr /23, /24, 25 supported
+#		only ipv4 cidr /21, /22, /23, /24, 25 supported
 #
 #
 #	Wireshark OUT database - https://code.wireshark.org/review/gitweb?p=wireshark.git;a=blob_plain;f=manuf
@@ -29,7 +29,7 @@
 
 
 function usage {
-               echo "	$0 - auto discover IPv6 hosts "
+               echo "	$0 - auto discover IPv4 hosts "
 	       echo "	e.g. $0  <-i interface>"
 	       echo "	-i  use this interface"
 	       echo "	-q  quiet, just print discovered hosts"
@@ -38,7 +38,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=0.96
+VERSION=0.98
 
 # initialize some vars
 hostlist=""
@@ -107,6 +107,10 @@ root_subnet=$(echo $this_addr | cut -d "." -f 1,2)
 subnet_4=$(echo $this_addr | cut -d "." -f 4)
 subnet_3=$(echo $this_addr | cut -d "." -f 3)
 
+this_subnet=$(ip -4 route | grep "$root_subnet" | cut -d "/" -f 1)
+
+
+
 net_mask=$($ip addr show dev $INTERFACE | grep 'inet ' | cut -d " " -f 6 | cut -d "/" -f 2 )
 log "INTF:$INTERFACE	ADDR:$this_addr	CIDR=$net_mask"
 
@@ -133,6 +137,18 @@ case $net_mask in
 		START=1
 		END=511
 		;;
+	22) 
+		let subnet_3=0
+		START=1
+		# make end max-2 or it will scan begining of next subnet
+		END=1022
+		;;
+	21) 
+		let subnet_3=0
+		START=1
+		# make end max-2 or it will scan begining of next subnet
+		END=2046
+		;;
 	*) # unsupported IPv4 subnet size
 		if [ $QUIET -eq 0 ]; then echo "WARN: Unsupported subnet netmask: $net_mask"; fi
 		exit 1
@@ -145,6 +161,9 @@ if (( $DEBUG == 1 )); then echo "DEBUG: start=$START  end=$END"; fi
 # fill arp table
 log "-- Pinging Subnet Addresses"
 
+
+#exit 1
+
 # 
 # Broadcast ping does not completely fill arp table with entires
 # Use loop to initiate pings, IPv4 subnets are small
@@ -154,19 +173,20 @@ j=$START
 for (( k=$START; k<$END; k++ ))
 do
 	# cover /23 
-	if (( $k > 255 )); then 
-		let i=subnet_3+1
-		let j=k-255
+	if (( $j >= 255 )); then 
+		let i=i+1
+		#let j=k-255
+		let j=0
 	else
-		let j=$k
+		let j=j+1
 	fi
 	
 	#z=$(ping -c 1 10.1.1.$k  2>/dev/null &)
 	if (( $DEBUG == 0 )); then
 		ping -c 1 $root_subnet.$i.$j  1>/dev/null 2>/dev/null &
 	else
-		#echo $root_subnet.$i.$j
-		ping -c 1 $root_subnet.$i.$j  2>/dev/null &
+		echo $root_subnet.$i.$j
+		#ping -c 1 $root_subnet.$i.$j  2>/dev/null &
 	fi
 
 done

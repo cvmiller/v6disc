@@ -42,7 +42,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=1.3
+VERSION=1.4
 
 # initialize some vars
 INTERFACE=""
@@ -177,7 +177,12 @@ function print_cols {
 		log "$1"
 	else
 		# supports upto 3 columns
-		echo "$1" |  awk '{printf "%-40s %-20s %s\n",$1,$2,$3}'
+		if [ -z $4 ]; then 
+			echo "$1" |  awk '{printf "%-40s %-20s %s\n",$1,$2,$3}'
+		else
+			# support 4 columns
+			echo "$1" |  awk '{printf "%-60s %-40s %-20s %s\n",$1,$2,$3,$4}'
+		fi
 	fi
 }
 
@@ -188,7 +193,11 @@ function 62mac {
 	host=$1
 
 	# populate neighbour cache with a ping
-	z=$(ping6 -W 1 -c 1 $host  2>/dev/null &)
+	if (( LINK_LOCAL == 1 )); then
+		z=$(ping6 -I "$intf" -W 1 -c 1 $host  2>/dev/null &)
+	else
+		z=$(ping6 -W 1 -c 1 $host  2>/dev/null &)
+	fi
 	v6_mac=$(ip -6 neigh | grep -v FAILED | grep "$host"  | cut -d " " -f 5 )
 	# return v6_mac value
 	if [ "$v6_mac" != "" ]; then
@@ -311,16 +320,17 @@ do
 			do
 				#resolve MAC addresses
 				v6_mac=$(62mac "$h")
-				if (( DEBUG == 1 )); then echo "DEBUG: $h|$v6_mac" ; fi
 				# match mac address
 				#
 				#	Dual stack correlates IPv6 and IPv4 addresses by having a common MAC address
 				#
 
 				v4_host=$(echo "$v4_hosts" | tr ' ' '\n' | grep -- "$v6_mac" |  cut -d '|' -f 1)
+				v4_eui=$(echo "$v4_hosts" | tr ' ' '\n' | grep -- "$v6_mac" |  cut -d '|' -f 3)
 				#v6_host=$(echo "$h" | cut -d '|' -f 1)
 				# create a tab delimited output
-				#print_cols "$v6_host  $v4_host"
+				if (( DEBUG == 1 )); then echo "DEBUG:  $h	 $v6_mac	$v4_eui	 $v4_host" ; fi
+				#print_cols "$v6_host  $v4_host $v6_mac"
 			done
 		fi; #end of dual stack
 
