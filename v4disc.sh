@@ -38,7 +38,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=0.98
+VERSION=0.99
 
 # initialize some vars
 hostlist=""
@@ -48,6 +48,7 @@ PING=1
 DEBUG=0
 QUIET=0
 V6=0
+HTML=0
 
 #OUI_FILE=oui.gz
 OUI_FILE=wireshark_oui.gz
@@ -57,13 +58,15 @@ ip="ip"
 
 DEBUG=0
 
-while getopts "?dPqi:L6" options; do
+while getopts "?dPqi:L6H" options; do
   case $options in
     P ) PING=0
     	let numopts+=1;;
     q ) QUIET=1
     	let numopts+=1;;
     L ) LINK_LOCAL=1
+    	let numopts+=1;;
+    H ) HTML=1
     	let numopts+=1;;
     6 ) V6=1
     	let numopts+=1;;
@@ -203,7 +206,7 @@ my_mac=$($ip addr show dev $INTERFACE | grep 'link/ether' | cut -d " " -f 6 )
 
 # show arp table
 log "-- ARP table"
-arp_table=$($ip -4 neigh | egrep -v '(INCOMPLETE|FAILED)' | cut -d " " -f 1,5 | sort -n)
+arp_table=$($ip -4 neigh | egrep -i -v '(INCOMPLETE|FAILED)' | cut -d " " -f 1,5 | sort -n)
 # add my_addr to arp_table
 arp_table="$arp_table"$'\n'"$my_addr $my_mac"
 
@@ -226,7 +229,11 @@ if [ -f "$OUI_FILE" ]; then
 			fi
 			oui=$(zcat "$OUI_FILE" | grep "^$mac_oui" | cut -c '7-')
 			#echo "$addr $mac $mac_oui $oui $i"
-			oui_table="$oui_table"$'\n'"$addr $mac $oui"
+			if [ "$oui_table" == "" ]; then
+				oui_table="$addr $mac $oui"
+			else
+				oui_table="$oui_table"$'\n'"$addr $mac $oui"
+			fi
 		fi
 		let "i++"
 	done
@@ -234,10 +241,16 @@ if [ -f "$OUI_FILE" ]; then
 	arp_table=$oui_table
 fi
 
-if [ $V6 -eq 0 ]; then
+if [ $V6 -eq 0 ] && [ $HTML -eq 0 ]; then
+	# normal text output
 	echo "$arp_table" | awk '{printf "%-20s %-20s %s\n",$1,$2,$3}' 
-else
+elif [ $V6 -eq 1 ]; then
+	# feed output to v6disc
 	echo "$arp_table" | tr ' ' '|' 
+elif [ $HTML -eq 1 ]; then
+	echo "<table>"
+	echo "$arp_table" | awk '{printf "<tr><td><a href=\"http://%s/\">%s</a></td>	<td>%s</td>	<td>%s</td></tr>\n",$1,$1,$2,$3}' 
+	echo "</table>"
 fi
 
 
