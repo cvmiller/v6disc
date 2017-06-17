@@ -38,7 +38,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=0.99
+VERSION=0.99.1
 
 # initialize some vars
 hostlist=""
@@ -151,6 +151,19 @@ case $net_mask in
 		START=1
 		# make end max-2 or it will scan begining of next subnet
 		END=2046
+		;;
+	20) 
+		let subnet_3=0
+		START=1
+		# make end max-2 or it will scan begining of next subnet
+		END=4094
+		;;
+	19) 
+		let subnet_3=0
+		START=1
+		# make end max-2 or it will scan begining of next subnet
+		END=8048
+		echo "Whoa, a /19, this could take a while" | egrep --color ".*"
 		;;
 	*) # unsupported IPv4 subnet size
 		if [ $QUIET -eq 0 ]; then echo "WARN: Unsupported subnet netmask: $net_mask"; fi
