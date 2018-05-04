@@ -42,7 +42,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=1.4
+VERSION=1.5a
 
 # initialize some vars
 INTERFACE=""
@@ -52,10 +52,14 @@ NMAP=0
 PING=0
 DEBUG=0
 QUIET=0
+OUI_CHECK=0
 
 host_list=""
 local_host_list=""
 interface_count=0
+OUI_FILE=wireshark_oui.gz
+
+
 # is avahi/bonjour available?
 AVAHI=0
 
@@ -122,6 +126,14 @@ if (( NMAP == 1 )); then
 		if (( DEBUG == 1 )); then echo "DEBUG: nmap version:$nmap_version options:$nmap_options"; fi
 	fi; #which nmap
 fi
+
+#check for OUI file - resolve OUI manufactorers (later)
+if [ -f "$OUI_FILE" ]; then
+	OUI_CHECK=1
+fi
+
+# check for zgrep (openwrt does NOT have zgrep, but does have zcat)
+zgrep=$(which zgrep)
 
 function log {
 	#
@@ -208,6 +220,26 @@ function 62mac {
 	fi
 }
 
+function rtn_oui_man {
+	mac=$1
+	mac_oui=$(echo $mac | tr -d ":" | cut -c '-6' | tr 'abcdef' 'ABCDEF')
+	if [ "$mac_oui" == "70B3D5" ]; then
+		# IEEE Registered 36 bit OUI address
+		mac_oui=$(echo $mac | tr -d ":" | cut -c '-9' | tr 'abcdef' 'ABCDEF')
+	fi
+	# zgrep is faster than zcat | grep
+	if [ $zgrep == "" ]; then
+		oui=$(zcat "$OUI_FILE" | grep "^$mac_oui" | cut -c '7-')
+	else
+		oui=$($zgrep "^$mac_oui" "$OUI_FILE" | cut -c '7-')
+	fi
+	#echo "$addr $mac $mac_oui $oui $i"
+	if [ "$oui_table" == "" ]; then
+		echo $oui
+	fi
+
+}
+
 
 # if -i <intf> is set, then don't detect interfaces, just go with user input
 intf_list=$INTERFACE
@@ -275,6 +307,8 @@ do
 		fi
 	fi
 
+	# determine MAC of this interface
+	intf_mac=$(ip link show dev "$intf" | grep ether | awk '{print $2}')
 
 	# detect hosts on link
 	log "-- Detecting hosts on $intf link"
@@ -288,8 +322,12 @@ do
 	local_host_list=""
 	# ping6 all_nodes address, which will return a list of link-locals on the interface
 	#FIXME: try to consolidte the if into a single long pipe
+
+	# always ping the link-locals to fill the neighbour cache
+	local_host_list=$(ping6 -c 1  -I "$i" ff02::1 | egrep 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed -r 's;(.*):;\1;' | sort -u)
+
 	if (( LINK_LOCAL == 1 )); then 
-		local_host_list=$(ping6 -c 2  -I "$i" ff02::1 | egrep 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed -r 's;(.*):;\1;' | sort -u)
+		local_host_list=$(ping6  -c 2  -I "$i" ff02::1 | egrep 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed -r 's;(.*):;\1;' | sort -u)
 	else
 		#there may be multiple GUAs on an interface
 		for a in $addr_list
@@ -336,6 +374,10 @@ do
 
 	fi; #end if host list blank
 
+	# only query link-local addresses if set
+	if (( LINK_LOCAL == 1 )); then
+		prefix_list="fe80:"
+	fi
 
 	# don't display discovered hosts, if there is no prefix
 	if [ "$prefix_list" != "" ]; then
@@ -368,34 +410,52 @@ do
 				# print spacer
 				if (( options_sum != 0 )); then
 					log " "
-				fi		
-				# list hosts found
-				if (( DUAL_STACK == 1 )); then
-					# pull MAC from IPv6 address
-					v6_mac=$(62mac "$host")
-					# compare with IPv4 list (which includes MACs)
-					#v4_host=$(echo "$v4_hosts" | tr ' ' '\n' | tr -d ':' | grep -- "$v6_mac" | cut -d '|' -f 1 )
-					#echo "--->$v4_hosts"
-					v4_host=$(echo "$v4_hosts" | tr ' ' '\n'  | grep -- "$v6_mac" | cut -d '|' -f 1 )
-					print_cols "$hoststr $host	$v4_host"
-				else
-					print_cols "$hoststr $host"
-					#echo "$hostaddr"
-				fi
-
-				if (( PING == 1 )); then
-					# ping6 hosts discovered
-					ping6 -W 1 -c1  "$host"
-				fi
-				if (( NMAP == 1 )); then
-					# scanning hosts discovered with nmap
-					if (( LINK_LOCAL == 0 )); then 
-						$nmap $nmap_options $host
+				fi	
+				# is host in this prefix?
+				prefix_match=$(echo $host | grep -i $prefix )
+				if [ "$prefix_match" != "" ]; then
+					
+					# list hosts found
+					if (( DUAL_STACK == 1 )); then
+						# pull MAC from IPv6 address
+						v6_mac=$(62mac "$host")
+						echo "v6MAC: $v6_mac"
+						# compare with IPv4 list (which includes MACs)
+						#v4_host=$(echo "$v4_hosts" | tr ' ' '\n' | tr -d ':' | grep -- "$v6_mac" | cut -d '|' -f 1 )
+						echo "--->$v4_hosts"
+						v4_host=$(echo "$v4_hosts" | tr ' ' '\n'  | grep -- "$v6_mac" | cut -d '|' -f 1 )
+						print_cols "$hoststr $host	$v4_host"
+					elif (( OUI_CHECK == 1 )) && (( QUIET == 0 )); then
+						# pull MAC from IPv6 address
+						v6_mac=$(62mac "$host")
+						if [ "$v6_mac" != "none" ]; then
+							# resolve OUI manufacture
+							v6_oui=$(rtn_oui_man $v6_mac )
+							print_cols "$hoststr $host $v6_mac $v6_oui"
+						else
+							# resolve OUI manufacture
+							v6_oui=$(rtn_oui_man $intf_mac )
+							print_cols "$hoststr $host $intf_mac $v6_oui"
+						fi
 					else
-						$nmap $nmap_options "$host%$intf"
+						# just show the discovered host
+						print_cols "$hoststr $host"
+						#echo "$hostaddr"
 					fi
-				fi
 
+					if (( PING == 1 )); then
+						# ping6 hosts discovered
+						ping6 -W 1 -c1  "$host"
+					fi
+					if (( NMAP == 1 )); then
+						# scanning hosts discovered with nmap
+						if (( LINK_LOCAL == 0 )); then 
+							$nmap $nmap_options $host
+						else
+							$nmap $nmap_options "$host%$intf"
+						fi
+					fi
+				fi; #prefix_match
 			done; #for host
 		done; #for prefix
 		#
