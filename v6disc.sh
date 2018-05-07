@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 ##################################################################################
 #
@@ -42,7 +42,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=1.5a
+VERSION=1.5b
 
 # initialize some vars
 INTERFACE=""
@@ -134,6 +134,13 @@ fi
 
 # check for zgrep (openwrt does NOT have zgrep, but does have zcat)
 zgrep=$(which zgrep)
+
+#
+# Sourc in IP command emulator (uses ifconfig, hense more portable)
+#
+#source ip_em.sh
+
+
 
 function log {
 	#
@@ -332,7 +339,7 @@ do
 		#there may be multiple GUAs on an interface
 		for a in $addr_list
 		do		
-			local_host_list="$local_host_list $(ping6 -c 2  -I "$a" ff02::1 | egrep 'icmp|seq=' | sort -u  | awk '{print $4}' | sed -r 's;(.*):;\1;' | sort -u)"
+			local_host_list="$local_host_list $(ping6 -c 2  -I  "$a" ff02::1 | egrep 'icmp|seq=' | sort -u  | awk '{print $4}' | sed -r 's;(.*):;\1;' | sort -u)"
 		done
 	fi
 	return_code=$?
