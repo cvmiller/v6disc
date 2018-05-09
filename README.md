@@ -81,6 +81,38 @@ fe80::129a:ddff:feae:8166                kukui.local
 -- Pau
 ```
 
+#### Using autodetection with OUI lookup (v1.5 or later)
+
+If the wireshark.gz OUI file is present, v6disc.sh will automatically look up the OUI (MAC manufacturer) in the listing
+
+```
+$ ./v6disc.sh 
+WARN: avahi utis not found, skipping mDNS check 
+-- Searching for interface(s) 
+-- Found interface(s):  eth0 
+-- INT:eth0	prefixs: 2001:470:b:b2a 2001:470:db8:101 fdce:5802:8872:0 
+-- Detecting hosts on eth0 link 
+-- Discovered hosts for prefix: 2001:470:b:b2a on eth0 
+2001:470:b:b2a:211:24ff:fee1:dbc8        00:11:24:e1:db:c8    Apple
+-- Discovered hosts for prefix: 2001:470:db8:101 on eth0 
+2001:470:db8:101::1                      00:24:a5:f1:07:ca    Buffalo
+2001:470:db8:101:203:93ff:fe67:4362      00:03:93:67:43:62    Apple
+2001:470:db8:101:211:24ff:fece:f1a       00:11:24:ce:0f:1a    Apple
+2001:470:db8:101:211:24ff:fee1:dbc8      00:11:24:e1:db:c8    Apple
+2001:470:db8:101:226:bbff:fe1e:7e15      00:26:bb:1e:7e:15    Apple
+2001:470:db8:101::303                    d4:9a:20:01:e0:a4    Apple
+2001:470:db8:101:3e2a:f4ff:fe37:dac4     3c:2a:f4:37:da:c4    BrotherI
+2001:470:db8:101:6a1:51ff:fea0:9339      04:a1:51:a0:93:38    Netgear
+2001:470:db8:101:b41f:18a3:a97c:4a0c     10:9a:dd:54:b6:34    Apple
+-- Discovered hosts for prefix: fdce:5802:8872:0 on eth0 
+fdce:5802:8872:0:203:93ff:fe67:4362      00:03:93:67:43:62    Apple
+fdce:5802:8872:0:211:24ff:fece:f1a       00:11:24:ce:0f:1a    Apple
+fdce:5802:8872:0:211:24ff:fee1:dbc8      00:11:24:e1:db:c8    Apple
+fdce:5802:8872:0:3e2a:f4ff:fe37:dac4     3c:2a:f4:37:da:c4    BrotherI
+-- Pau 
+
+```
+
 #### Using the Link-Local Option
 Don't have a global routable prefix on your network. Still want to see how many IPv6 enabled hosts are ready for the IPv6 network? The link-local option, -L, will print only the discovered hosts (shown with Dual Stack option)
 
@@ -171,7 +203,7 @@ Copy `v6disc.sh` into your directory, and run. The script will auto detect inter
 
 Copy `v4disc.sh` to the same directory, if you are interested in the Dual Stack option (-D).
 
-Copy `wireshark_oui.gz` to the same directory, if you want MAC OUI lookup enabled when running `v4disc.sh`
+Copy `wireshark_oui.gz` to the same directory, if you want MAC OUI lookup enabled.
 
 
 ## Dependencies

@@ -27,6 +27,11 @@
 #		
 #		
 
+#
+# Sourc in IP command emulator (uses ifconfig, hense more portable)
+#
+OS=""
+#source ip_em.sh
 
 function usage {
                echo "	$0 - auto discover IPv6 hosts "
@@ -42,7 +47,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=1.5b
+VERSION=1.5d
 
 # initialize some vars
 INTERFACE=""
@@ -53,7 +58,6 @@ PING=0
 DEBUG=0
 QUIET=0
 OUI_CHECK=0
-
 host_list=""
 local_host_list=""
 interface_count=0
@@ -135,11 +139,6 @@ fi
 # check for zgrep (openwrt does NOT have zgrep, but does have zcat)
 zgrep=$(which zgrep)
 
-#
-# Sourc in IP command emulator (uses ifconfig, hense more portable)
-#
-#source ip_em.sh
-
 
 
 function log {
@@ -210,7 +209,8 @@ function 62mac {
 	#	Returns MAC address from neighbour cache
 	#
 	host=$1
-
+	local_intf_mac=$2 
+	
 	# populate neighbour cache with a ping
 	if (( LINK_LOCAL == 1 )); then
 		z=$(ping6 -I "$intf" -W 1 -c 1 $host  2>/dev/null &)
@@ -218,12 +218,19 @@ function 62mac {
 		z=$(ping6 -W 1 -c 1 $host  2>/dev/null &)
 	fi
 	v6_mac=$(ip -6 neigh | grep -v FAILED | grep "$host"  | cut -d " " -f 5 )
+		
 	# return v6_mac value
 	if [ "$v6_mac" != "" ]; then
 		echo "$v6_mac"
 	else
-		# didn't find mac
-		echo "none"
+		# is this address a local IPv6 address?		
+		local_mac_num=$(ip addr | egrep "$host|$local_intf_mac" | wc -l)
+		if (( $local_mac_num == 2 )); then
+			echo "$local_intf_mac"
+		else
+			# didn't find mac
+			echo "none"
+		fi
 	fi
 }
 
@@ -255,13 +262,13 @@ if [ "$INTERFACE" == "" ]; then
 	log "-- Searching for interface(s)"
 	intf_list=""
 	# Get a list of Interfaces which are UP
-	intf_list=$($ip link | egrep -i '(state up|multicast,up)' | grep -v -i no-carrier | cut -d ":" -f 2 | cut -d "@" -f 1 )
+	intf_list=$(ip link | egrep -i '(state up|multicast,up|up,)' | grep -v 'lo:' |grep -v -i no-carrier | cut -d ":" -f 2 | cut -d "@" -f 1 )
 
 	# get count of interfaces - to be used by neighbour cache later
 	interface_count=$(echo "$intf_list"  | wc -w)	
 
 	if (( DEBUG == 1 )); then
-		echo "DEBUG: listing interfaces $($ip link | egrep '^[0-9]+:')"
+		echo "DEBUG: listing interfaces $(ip link | egrep '^[0-9]+:')"
 		echo "DEBUG: count interface: $interface_count"
 	fi
 	
@@ -291,9 +298,13 @@ do
 	do
 		p=$(echo "$prefix" | cut -d ':' -f 1,2,3,4  )
 		# fix if double colon prefixes
-		p=$(echo "$p" | sed -r 's;(\w+:):[!-z]+;\1;' )
+		if [ "$OS" = "BSD" ]; then
+			p=$(echo "$p" | sed -E 's;(\w+:):[!-z]+;\1;' )
+		else
+			p=$(echo "$p" | sed -r 's;(\w+:):[!-z]+;\1;' )
+		fi
 		plist="$plist $p"
-		if (( DEBUG == 1 )); then
+		if (( $DEBUG == 1 )); then
 			echo "DEBUG: $plist"
 		fi
 	done
@@ -330,18 +341,36 @@ do
 	# ping6 all_nodes address, which will return a list of link-locals on the interface
 	#FIXME: try to consolidte the if into a single long pipe
 
+	if [ "$OS" = "BSD" ]; then
+		BSD_OPT="-E"
+	else
+		BSD_OPT="-r"
+	fi
+
+
 	# always ping the link-locals to fill the neighbour cache
-	local_host_list=$(ping6 -c 1  -I "$i" ff02::1 | egrep 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed -r 's;(.*):;\1;' | sort -u)
+	local_host_list=$(ping6 -c 1  -I "$i" ff02::1 | egrep 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed $BSD_OPT 's;(.*):;\1;' | sort -u)
 
 	if (( LINK_LOCAL == 1 )); then 
-		local_host_list=$(ping6  -c 2  -I "$i" ff02::1 | egrep 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed -r 's;(.*):;\1;' | sort -u)
+		local_host_list=$(ping6  -c 2  -I "$i" ff02::1 | egrep 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed $BSD_OPT 's;(.*):;\1;' | sort -u)
 	else
+		
 		#there may be multiple GUAs on an interface
 		for a in $addr_list
 		do		
-			local_host_list="$local_host_list $(ping6 -c 2  -I  "$a" ff02::1 | egrep 'icmp|seq=' | sort -u  | awk '{print $4}' | sed -r 's;(.*):;\1;' | sort -u)"
+			# using BSD?
+			if [ "$OS" = "BSD" ]; then
+				local_host_list="$local_host_list $(ping6 -c 2  -I $i -S "$a" ff02::1 | egrep 'icmp|seq=' | sort -u  | awk '{print $4}' | sed $BSD_OPT 's;(.*):;\1;' | sort -u)"
+			
+			else
+				local_host_list="$local_host_list $(ping6 -c 2  -I  "$a" ff02::1 | egrep 'icmp|seq=' | sort -u  | awk '{print $4}' | sed $BSD_OPT 's;(.*):;\1;' | sort -u)"
+			fi
 		done
 	fi
+	
+	#clean up host list (for duplicates, and muliples on the same line)
+	local_host_list=$(echo "$local_host_list" | tr ' ' '\n' | sort -u )
+	
 	return_code=$?
 	#
 	#	Check ping6 output, if empty, something is wrong
@@ -364,7 +393,7 @@ do
 			for h in $v6_hosts
 			do
 				#resolve MAC addresses
-				v6_mac=$(62mac "$h")
+				v6_mac=$(62mac "$h" "$intf_mac")
 				# match mac address
 				#
 				#	Dual stack correlates IPv6 and IPv4 addresses by having a common MAC address
@@ -409,6 +438,8 @@ do
 			
 			
 			host_list=$local_host_list
+			if (( DEBUG == 1 )); then echo "DEBUG: hostlist: $host_list"; fi
+			
 			#
 			# Resolve MAC addresses in host_list
 			#
@@ -425,16 +456,16 @@ do
 					# list hosts found
 					if (( DUAL_STACK == 1 )); then
 						# pull MAC from IPv6 address
-						v6_mac=$(62mac "$host")
-						echo "v6MAC: $v6_mac"
+						v6_mac=$(62mac "$host" "$intf_mac")
+						#echo "v6MAC: $v6_mac"
 						# compare with IPv4 list (which includes MACs)
 						#v4_host=$(echo "$v4_hosts" | tr ' ' '\n' | tr -d ':' | grep -- "$v6_mac" | cut -d '|' -f 1 )
-						echo "--->$v4_hosts"
+						#echo "--->$v4_hosts"
 						v4_host=$(echo "$v4_hosts" | tr ' ' '\n'  | grep -- "$v6_mac" | cut -d '|' -f 1 )
 						print_cols "$hoststr $host	$v4_host"
 					elif (( OUI_CHECK == 1 )) && (( QUIET == 0 )); then
 						# pull MAC from IPv6 address
-						v6_mac=$(62mac "$host")
+						v6_mac=$(62mac "$host" "$intf_mac")
 						if [ "$v6_mac" != "none" ]; then
 							# resolve OUI manufacture
 							v6_oui=$(rtn_oui_man $v6_mac )

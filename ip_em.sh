@@ -26,7 +26,7 @@
 #		
 #		
 #		
-VERSION=0.91
+VERSION=0.93
 
 # check OS type
 OS=$(uname -s)
@@ -39,7 +39,7 @@ fi
 #
 function ip {
 
-	# set up default error message
+	# set up default warning message - terminal colours - http://wiki.bash-hackers.org/scripting/terminalcodes
 	result=$(echo -e "\033[1;91m WARNING: function not implemented: ip $* \033[00m")
 	# set up -6 or -4 option
 	inet_opt="inet"
@@ -68,9 +68,9 @@ function ip {
 	
 	case $1 in
 		"addr" )
-			result=$(ifconfig $dev | grep "$inet_opt" );;
+			result=$(ifconfig $dev | egrep "$inet_opt|ether" );;
 		"link" )
-			result=$(ifconfig $dev | grep ether);;
+			result=$(ifconfig $dev | egrep 'flags|ether'| tr '\n' '|' | sed  's/1500|//g' | tr '|' '\n' | awk '{print "1: "$1 " " $2 "\n" $4 " " $5 " " $6 " " $7}' );;
 		"neigh" )
 			if [ "$OS" != "Linux" ]; then
 				# OS is BSD
@@ -95,7 +95,7 @@ if [ -n "$1" ]; then
 	# get self test interface 
 	INTF=$(netstat -i | tail -1 |  awk '{print $1}')
 
-	if (( "$1" == "test" )); then
+	if [ "$1" == "test" ]; then
 
 		echo "Running self test"
 		echo "---- ip addr"
@@ -103,6 +103,12 @@ if [ -n "$1" ]; then
 		ip addr
 		echo "---- ip link"
 		ip link
+		echo "---- ip link show dev $INTF | grep ether | awk '{print $2}'"
+		ip link show dev $INTF | grep ether | awk '{print $2}'
+		echo "---- ip link long"
+		ip link | egrep -i '(state up|multicast,up|up,)' | grep -v -i no-carrier | cut -d ":" -f 2 | cut -d "@" -f 1
+		
+		
 		echo "---- ip addr show dev $INTF"
 		ip addr show dev $INTF
 		echo "---- ip -6 addr show dev $INTF"
