@@ -47,7 +47,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=1.5d
+VERSION=1.5e
 
 # initialize some vars
 INTERFACE=""
@@ -217,11 +217,16 @@ function 62mac {
 	else
 		z=$(ping6 -W 1 -c 1 $host  2>/dev/null &)
 	fi
-	v6_mac=$(ip -6 neigh | grep -v FAILED | grep "$host"  | cut -d " " -f 5 )
+	this_v6_mac=$(ip -6 neigh | grep -v FAILED | grep "$host"  | cut -d " " -f 5 | sort -u )
 		
-	# return v6_mac value
-	if [ "$v6_mac" != "" ]; then
-		echo "$v6_mac"
+#	if (( DEBUG == 1 )); then
+#		echo "DEBUG 62mac: $host | $local_intf_mac | $this_v6_mac" > /dev/stderr
+#		
+#	fi
+	
+	# return this_v6_mac value
+	if [ "$this_v6_mac" != "" ]; then
+		echo "$this_v6_mac"
 	else
 		# is this address a local IPv6 address?		
 		local_mac_num=$(ip addr | egrep "$host|$local_intf_mac" | wc -l)
@@ -360,7 +365,7 @@ do
 		do		
 			# using BSD?
 			if [ "$OS" = "BSD" ]; then
-				local_host_list="$local_host_list $(ping6 -c 2  -I $i -S "$a" ff02::1 | egrep 'icmp|seq=' | sort -u  | awk '{print $4}' | sed $BSD_OPT 's;(.*):;\1;' | sort -u)"
+				local_host_list="$local_host_list $(ping6 -c 2  -I $i -S "$a" ff02::1 | egrep 'icmp|seq=' | sort -u  | awk '{print $4}' | sed $BSD_OPT 's;(.*),;\1;' | sort -u)"
 			
 			else
 				local_host_list="$local_host_list $(ping6 -c 2  -I  "$a" ff02::1 | egrep 'icmp|seq=' | sort -u  | awk '{print $4}' | sed $BSD_OPT 's;(.*):;\1;' | sort -u)"
@@ -369,7 +374,7 @@ do
 	fi
 	
 	#clean up host list (for duplicates, and muliples on the same line)
-	local_host_list=$(echo "$local_host_list" | tr ' ' '\n' | sort -u )
+	local_host_list=$(echo "$local_host_list" | tr ' ' '\n' | sort -u | tr -d ',')
 	
 	return_code=$?
 	#
