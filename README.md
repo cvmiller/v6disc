@@ -14,7 +14,7 @@ There are three reasons to use `v6disc.sh`
 With 18,446,744,073,709,551,616 (2^64) potential addresses on a LAN segment, the old brute force method of scanning every address (e.g. with nnap) quickly becomes impractical. Even with version 7 of `nmap`, scanning a /64 still **takes a week**! `v6disc.sh` scans a /64 less than **5 seconds**.
 
 #### MacOS X support (version 2.0)
-MacOS X is BSD based, and does not support the linux `ip` command. By creating a ip command emulator in bash, the `ip`, basic show commands are supported on BSD. The script will detect if it is running on a Mac, and automatically include `ip_em.sh`, the `ip` command emulator script.
+MacOS X is BSD based, and does not support the linux `ip` command. By creating a ip command emulator in bash, the `ip` basic show commands are supported on BSD. The script will detect if it is running on a Mac, and automatically include `ip_em.sh`, the `ip` command emulator script.
 
 #### IPv6 under the hood
 Each IPv6 node joins the multicast IPv6 all_notes group (FF02::1), one only needs to ping6 this group to determine which hosts are on the link. Pinging using the host Global Unicast Address (GUA) will yield GUAs in that prefix, including hosts which use DHCPv6. 
@@ -208,6 +208,7 @@ Copy `v4disc.sh` to the same directory, if you are interested in the Dual Stack 
 
 Copy `wireshark_oui.gz` to the same directory, if you want MAC OUI lookup enabled.
 
+Copy `ip_em.sh` to the same directory, for MacOS X compatibility (as of version 2.0).
 
 ## Dependencies
 
@@ -225,7 +226,7 @@ Dual Stack option only supports IPv4 subnet masks of /23, /24, /25.
 
 The `v6disc.sh` script may *not* discover Windows machines which don't respond to a ping6 to multicast address FF02::1
 
-Although MacOS X is supported (as of version 2.0) FreeBSD is **not** supported. There is a bug in the kernel code which prevents the detection mechansim from using a GUA source address.
+Although MacOS X is supported (as of version 2.0) FreeBSD is **not** supported. There is a bug in the FreeBSD kernel code which prevents the detection mechansim from using a GUA source address.
 
 ## Contributors
 
