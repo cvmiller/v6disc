@@ -31,7 +31,12 @@
 # Sourc in IP command emulator (uses ifconfig, hense more portable)
 #
 OS=""
-#source ip_em.sh
+# check OS type
+OS=$(uname -s)
+if [ $OS == "Darwin" ]; then
+	# MacOS X compatibility
+	source ip_em.sh
+fi
 
 function usage {
                echo "	$0 - auto discover IPv6 hosts "
@@ -47,7 +52,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=1.5e
+VERSION=2.0
 
 # initialize some vars
 INTERFACE=""
@@ -176,7 +181,11 @@ check=$(which $avahi)
 		AVAHI=1
 	fi
 
-
+# let user know BSD compatibility is being used
+if [ $OS == "BSD" ]; then
+	# MacOS X compatibility
+	log "-- using BSD Compatibility"
+fi
 
 
 #======== Actual work performed by script ============
@@ -239,12 +248,46 @@ function 62mac {
 	fi
 }
 
+
+#
+#	Expands IPv6 quibble to 4 digits with leading zeros e.g. db8 -> 0db8
+#
+#	Returns string with expanded quibble (modified for MAC addresses)
+
+function expand_quibble() {
+	addr=$1
+	# create array of quibbles
+	addr_array=(${addr//:/ })
+	addr_array_len=${#addr_array[@]}
+	# step thru quibbles
+	for ((i=0; i< $addr_array_len ; i++ ))
+	do
+		quibble=${addr_array[$i]}
+		quibble_len=${#quibble}
+		case $quibble_len in
+			1) quibble="0$quibble";;
+			2) quibble="$quibble";;
+			3) quibble="$quibble";;
+		esac
+		addr_array[$i]=$quibble	
+	done
+	# reconstruct addr from quibbles
+	return_str=${addr_array[*]}
+	return_str="${return_str// /:}"
+	echo $return_str
+}
+
+
 function rtn_oui_man {
 	mac=$1
-	mac_oui=$(echo $mac | tr -d ":" | cut -c '-6' | tr 'abcdef' 'ABCDEF')
+	
+	#expand MAC (BSD suppresses zeros)
+	bsd_mac=$(expand_quibble $mac)
+	
+	mac_oui=$(echo $bsd_mac | tr -d ":" | cut -c '-6' | tr 'abcdef' 'ABCDEF')
 	if [ "$mac_oui" == "70B3D5" ]; then
 		# IEEE Registered 36 bit OUI address
-		mac_oui=$(echo $mac | tr -d ":" | cut -c '-9' | tr 'abcdef' 'ABCDEF')
+		mac_oui=$(echo $bsd_mac | tr -d ":" | cut -c '-9' | tr 'abcdef' 'ABCDEF')
 	fi
 	# zgrep is faster than zcat | grep
 	if [ $zgrep == "" ]; then

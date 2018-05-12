@@ -26,42 +26,13 @@
 #		
 #		
 #		
-VERSION=0.94
+VERSION=0.93
 
 # check OS type
 OS=$(uname -s)
 if [ $OS == "Darwin" ] || [ $OS == "FreeBSD" ]; then
 	OS="BSD"
 fi
-
-
-#
-#	Expands IPv6 quibble to 4 digits with leading zeros e.g. db8 -> 0db8
-#
-#	Returns string with expanded quibble (modified for MAC addresses)
-
-function expand_quibble() {
-	addr=$1
-	# create array of quibbles
-	addr_array=(${addr//:/ })
-	addr_array_len=${#addr_array[@]}
-	# step thru quibbles
-	for ((i=0; i< $addr_array_len ; i++ ))
-	do
-		quibble=${addr_array[$i]}
-		quibble_len=${#quibble}
-		case $quibble_len in
-			1) quibble="0$quibble";;
-			2) quibble="$quibble";;
-			3) quibble="$quibble";;
-		esac
-		addr_array[$i]=$quibble	
-	done
-	# reconstruct addr from quibbles
-	return_str=${addr_array[*]}
-	return_str="${return_str// /:}"
-	echo $return_str
-}
 
 #
 # IP command emulator function - returns status similar to the linux IP command
@@ -104,44 +75,9 @@ function ip {
 			if [ "$OS" != "Linux" ]; then
 				# OS is BSD
 				if [ "$neigh_cmd" == "ndp" ]; then 
-					result=''
-					result_list=$($neigh_cmd -an | awk '{print $1 "|dev|" $3 "|lladdr|" $2}')
-					for line in $result_list 
-					do
-						# expand last field (MAC addr)
-						bsd_mac=$(echo $line | cut -f 5 -d '|' )
-						bsd_mac=$(expand_quibble $bsd_mac)
-						# collect first part of line
-						result_line=$(echo $line | cut -f 1-4 -d '|' )
-						# append last field back on
-						result_line="$result_line|$bsd_mac"
-						result="$result@$result_line"
-					done
-					# fix the formatting of result
-					#result=$(echo $result | tr ' ' '@')
-					result=$(echo $result | tr '|' ' ')
-					result=$(echo $result | tr '@' '\n')
-					
-				fi
+					result=$($neigh_cmd -an | awk '{print $1 " dev " $3 " lladdr " $2}'); fi
 				if [ "$neigh_cmd" == "arp" ]; then 
-					result=''
-					result_list=$($neigh_cmd -an | tr -d '()' | awk '{print $2 "|dev|" $6 "|lladdr|" $4}')
-					for line in $result_list 
-					do
-						# expand last field (MAC addr)
-						bsd_mac=$(echo $line | cut -f 5 -d '|' )
-						bsd_mac=$(expand_quibble $bsd_mac)
-						# collect first part of line
-						result_line=$(echo $line | cut -f 1-4 -d '|' )
-						# append last field back on
-						result_line="$result_line|$bsd_mac"
-						result="$result@$result_line"
-					done
-					#result=$(echo $result | tr ' ' '@')
-					result=$(echo $result | tr '|' ' ')
-					result=$(echo $result | tr '@' '\n')
-					
-				fi
+					result=$($neigh_cmd -an | tr -d '()' | awk '{print $2 " dev " $6 " lladdr " $4}'); fi
 			else
 				# can't get Linux neigh table without IP command 
 				if [ "$neigh_cmd" == "ndp" ]; then result=$(/usr/bin/env ip -6 neigh); fi
@@ -158,9 +94,7 @@ function ip {
 if [ -n "$1" ]; then
 	# get self test interface 
 	INTF=$(netstat -i | tail -1 |  awk '{print $1}')
-	if [ -n "$2" ]; then
-		INTF=$2
-	fi
+
 	if [ "$1" == "test" ]; then
 
 		echo "Running self test"
@@ -189,10 +123,6 @@ if [ -n "$1" ]; then
 		ip -4 neigh
 		echo "---- ip -4 route"
 		ip -4 route
-
-		echo "---- ip -6 neigh | grep -v FAILED | grep "$host"  | cut -d " " -f 5 "
-		ip -6 neigh | grep -v FAILED  | cut -d " " -f 5 
-
 
 	fi
 fi
