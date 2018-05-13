@@ -38,7 +38,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=0.99.1
+VERSION=0.99.2
 
 # initialize some vars
 hostlist=""
@@ -114,7 +114,7 @@ this_subnet=$(ip -4 route | grep "$root_subnet" | cut -d "/" -f 1)
 
 
 
-net_mask=$($ip addr show dev $INTERFACE | grep 'inet ' | cut -d " " -f 6 | cut -d "/" -f 2 )
+net_mask=$($ip addr show dev $INTERFACE | grep 'inet ' | cut -d " " -f 6 | cut -d "/" -f 2 | sort -u)
 log "INTF:$INTERFACE	ADDR:$this_addr	CIDR=$net_mask"
 
 #default start
