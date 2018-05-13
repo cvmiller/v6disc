@@ -38,7 +38,20 @@ function usage {
 	       exit 1
            }
 
-VERSION=0.99.2
+VERSION=0.99.3
+
+#
+# Sourc in IP command emulator (uses ifconfig, hense more portable)
+#
+OS=""
+# check OS type
+OS=$(uname -s)
+if [ $OS == "Darwin" ]; then
+	# MacOS X compatibility
+	source ip_em.sh
+fi
+
+
 
 # initialize some vars
 hostlist=""
@@ -98,10 +111,68 @@ if [ "$INTERFACE" == "" ]; then
 	exit 1
 fi
 
+
+# check for zgrep (openwrt does NOT have zgrep, but does have zcat)
+zgrep=$(which zgrep)
+
+
 function log {
 	# echo string if not quiet
 	if (( $QUIET == 0 )); then echo $1; fi
 }
+
+#from Stack Overflow - https://stackoverflow.com/questions/13908360/extracting-netmask-from-ifconfig-output-and-printing-it-in-cidr-format
+# Modified by Craig Miller for BSD
+
+function bitCountForMask {
+    local -i count=0
+	# strip 0x from mask
+    local mask="${1##0x}"
+    local digit
+
+    while [ "$mask" != "" ]; do
+        digit="${mask:0:1}"
+        mask="${mask:1}"
+        case "$digit" in
+            [fF]) count=count+4 ;;
+            [eE]) count=count+3 ;;
+            [cC]) count=count+2 ;;
+            8) count=count+1 ;;
+            0) ;;
+            *)
+                echo 1>&2 "error: illegal digit $digit in netmask"
+                return 1
+                ;;
+        esac
+    done
+	# return mask in CIDR notation
+    echo $count
+}
+
+
+function expand_quibble() {
+	addr=$1
+	# create array of quibbles
+	addr_array=(${addr//:/ })
+	addr_array_len=${#addr_array[@]}
+	# step thru quibbles
+	for ((i=0; i< $addr_array_len ; i++ ))
+	do
+		quibble=${addr_array[$i]}
+		quibble_len=${#quibble}
+		case $quibble_len in
+			1) quibble="0$quibble";;
+			2) quibble="$quibble";;
+			3) quibble="$quibble";;
+		esac
+		addr_array[$i]=$quibble	
+	done
+	# reconstruct addr from quibbles
+	return_str=${addr_array[*]}
+	return_str="${return_str// /:}"
+	echo $return_str
+}
+
 
 # get broadcast address
 log "-- Detecting subnet address space"
@@ -110,12 +181,19 @@ root_subnet=$(echo $this_addr | cut -d "." -f 1,2)
 subnet_4=$(echo $this_addr | cut -d "." -f 4)
 subnet_3=$(echo $this_addr | cut -d "." -f 3)
 
-this_subnet=$(ip -4 route | grep "$root_subnet" | cut -d "/" -f 1)
+#this_subnet=$(ip -4 route | grep "$root_subnet" | cut -d "/" -f 1)
 
 
-
-net_mask=$($ip addr show dev $INTERFACE | grep 'inet ' | cut -d " " -f 6 | cut -d "/" -f 2 | sort -u)
+if [ "$OS" != "Linux" ]; then
+	# OS is BSD
+	net_mask=$($ip addr show dev $INTERFACE | grep 'inet ' | awk '{print $4}' | sort -u)
+	net_mask=$(bitCountForMask $net_mask)
+else
+	net_mask=$($ip addr show dev $INTERFACE | grep 'inet ' | cut -d " " -f 6 | cut -d "/" -f 2 | sort -u)
+fi
 log "INTF:$INTERFACE	ADDR:$this_addr	CIDR=$net_mask"
+
+
 
 #default start
 start_subnet=1
@@ -235,12 +313,21 @@ if [ -f "$OUI_FILE" ]; then
 			addr=$f
 		else
 			mac=$f
-			mac_oui=$(echo $f | tr -d ":" | cut -c '-6' | tr 'abcdef' 'ABCDEF')
+			#expand MAC (BSD suppresses zeros)
+			bsd_mac=$(expand_quibble $mac)
+			
+			mac_oui=$(echo $bsd_mac | tr -d ":" | cut -c '-6' | tr 'abcdef' 'ABCDEF')
 			if [ "$mac_oui" == "70B3D5" ]; then
 				# IEEE Registered 36 bit OUI address
-				mac_oui=$(echo $f | tr -d ":" | cut -c '-9' | tr 'abcdef' 'ABCDEF')
+				mac_oui=$(echo $bsd_mac | tr -d ":" | cut -c '-9' | tr 'abcdef' 'ABCDEF')
 			fi
-			oui=$(zcat "$OUI_FILE" | grep "^$mac_oui" | cut -c '7-')
+			if [ $zgrep == "" ]; then
+				oui=$(zcat "$OUI_FILE" | grep "^$mac_oui" | cut -c '7-')
+			else
+				oui=$($zgrep "^$mac_oui" "$OUI_FILE" | cut -c '7-')
+			fi
+			
+			
 			#echo "$addr $mac $mac_oui $oui $i"
 			if [ "$oui_table" == "" ]; then
 				oui_table="$addr $mac $oui"

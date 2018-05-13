@@ -26,7 +26,7 @@
 #		
 #		
 #		
-VERSION=0.93
+VERSION=0.95
 
 # check OS type
 OS=$(uname -s)
@@ -123,6 +123,9 @@ if [ -n "$1" ]; then
 		ip -4 neigh
 		echo "---- ip -4 route"
 		ip -4 route
+
+		echo "---- ip addr show dev $INTERFACE | grep 'inet ' | cut -d " " -f 6 | cut -d "/" -f 2 | sort -u"
+		ip addr show dev $INTERFACE | grep 'inet ' | cut -d " " -f 6 | cut -d "/" -f 2 | sort -u
 
 	fi
 fi
