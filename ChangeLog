@@ -1,7 +1,17 @@
 All changes by Craig Miller cvmiller at gmail dot com
 
+12 May 2018			v6disc.sh (2.0) v4disc.sh (0.99.3) ip_em.sh (0.95)
+	Added MacOS X (BSD) support using the IP command emulator (ip_em_sh)
+	Improved operation of -D (dual stack) on MacOS X
+
+9 May 2018			 v6disc.sh (1.5) 
+	Added OUI lookup to v6disc.sh (was already in v4disc.sh)
+
 25 December 2016	v4disc.sh	v0.94
 	Added offline OUI lookup, script will use wireshark_oui.gz if available
+
+29 March 2017		v1.4
+	Added -D (dual stack) option for Link-Local operation
 
 18 November 2016	v1.3
 	Used ping6 GUA source rather than link-local for discovery
