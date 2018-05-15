@@ -52,7 +52,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=2.0.2
+VERSION=2.0.3
 
 # initialize some vars
 INTERFACE=""
@@ -270,7 +270,13 @@ function rtn_oui_man {
 	
 	#FIXME: only expand MAC if using BSD
 	#expand MAC (BSD suppresses zeros)
-	bsd_mac=$(expand_mac $mac)
+	if (( ${#mac} != 17 )); then
+		# MAC address is NOT full width
+		bsd_mac=$(expand_mac $mac)
+	else
+		# no expansion required
+		bsd_mac=$mac
+	fi
 	
 	mac_oui=$(echo $bsd_mac | tr -d ":" | cut -c '-6' | tr 'abcdef' 'ABCDEF')
 	if [ "$mac_oui" == "70B3D5" ]; then
