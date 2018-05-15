@@ -26,7 +26,7 @@
 #		
 #		
 #		
-VERSION=0.95
+VERSION=0.96
 
 # check OS type
 OS=$(uname -s)
@@ -70,7 +70,7 @@ function ip {
 		"addr" )
 			result=$(ifconfig $dev | egrep "$inet_opt|ether" );;
 		"link" )
-			result=$(ifconfig $dev | egrep 'flags|ether'| tr '\n' '|' | sed  's/1500|//g' | tr '|' '\n' | awk '{print "1: "$1 " " $2 "\n" $4 " " $5 " " $6 " " $7}' );;
+			result=$(ifconfig $dev | egrep 'flags|ether'| tr '\n' '|' | sed  's/1500|//g' |sed 's/0 mtu//g' | tr '|' '\n' | awk '{print "1: "$1 " " $2 "\n" $4 " " $5 " " $6 " " $7}' );;
 		"neigh" )
 			if [ "$OS" != "Linux" ]; then
 				# OS is BSD
@@ -96,6 +96,9 @@ if [ -n "$1" ]; then
 	INTF=$(netstat -i | tail -1 |  awk '{print $1}')
 
 	if [ "$1" == "test" ]; then
+		if [ "$2" != "" ]; then
+			INTF="$2"
+		fi
 
 		echo "Running self test"
 		echo "---- ip addr"
@@ -105,7 +108,9 @@ if [ -n "$1" ]; then
 		ip link
 		echo "---- ip link show dev $INTF | grep ether | awk '{print $2}'"
 		ip link show dev $INTF | grep ether | awk '{print $2}'
-		echo "---- ip link long"
+		
+		
+		echo "---- ip link long (show interfaces)"
 		ip link | egrep -i '(state up|multicast,up|up,)' | grep -v -i no-carrier | cut -d ":" -f 2 | cut -d "@" -f 1
 		
 		

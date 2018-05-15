@@ -33,7 +33,7 @@
 OS=""
 # check OS type
 OS=$(uname -s)
-if [ $OS == "Darwin" ]; then
+if [ $OS == "Darwin" ] || [ $OS == "FreeBSD" ]; then
 	# MacOS X compatibility
 	source ip_em.sh
 fi
@@ -52,7 +52,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=2.0
+VERSION=2.0.2
 
 # initialize some vars
 INTERFACE=""
@@ -249,40 +249,28 @@ function 62mac {
 }
 
 
-#
-#	Expands IPv6 quibble to 4 digits with leading zeros e.g. db8 -> 0db8
-#
-#	Returns string with expanded quibble (modified for MAC addresses)
-
-function expand_quibble() {
-	addr=$1
-	# create array of quibbles
-	addr_array=(${addr//:/ })
-	addr_array_len=${#addr_array[@]}
-	# step thru quibbles
-	for ((i=0; i< $addr_array_len ; i++ ))
+function expand_mac () {
+	# adds leading zeros to MAC address for OUI match (BSD trims leading zeros)
+	new_mac=""
+	mac="$1"
+	mac_list=$(echo $mac | tr ":" " " | awk '{print $1 " " $2 " " $3 " " }' )
+	for m in $mac_list
 	do
-		quibble=${addr_array[$i]}
-		quibble_len=${#quibble}
-		case $quibble_len in
-			1) quibble="0$quibble";;
-			2) quibble="$quibble";;
-			3) quibble="$quibble";;
-		esac
-		addr_array[$i]=$quibble	
+		if (( ${#m} == 1 )); then
+			m="0$m"
+		fi
+		new_mac="$new_mac$m:"
 	done
-	# reconstruct addr from quibbles
-	return_str=${addr_array[*]}
-	return_str="${return_str// /:}"
-	echo $return_str
+	echo "$new_mac"
 }
 
 
 function rtn_oui_man {
 	mac=$1
 	
+	#FIXME: only expand MAC if using BSD
 	#expand MAC (BSD suppresses zeros)
-	bsd_mac=$(expand_quibble $mac)
+	bsd_mac=$(expand_mac $mac)
 	
 	mac_oui=$(echo $bsd_mac | tr -d ":" | cut -c '-6' | tr 'abcdef' 'ABCDEF')
 	if [ "$mac_oui" == "70B3D5" ]; then
@@ -290,7 +278,7 @@ function rtn_oui_man {
 		mac_oui=$(echo $bsd_mac | tr -d ":" | cut -c '-9' | tr 'abcdef' 'ABCDEF')
 	fi
 	# zgrep is faster than zcat | grep
-	if [ $zgrep == "" ]; then
+	if [ "$zgrep" == "" ]; then
 		oui=$(zcat "$OUI_FILE" | grep "^$mac_oui" | cut -c '7-')
 	else
 		oui=$($zgrep "^$mac_oui" "$OUI_FILE" | cut -c '7-')
@@ -346,7 +334,7 @@ do
 	do
 		p=$(echo "$prefix" | cut -d ':' -f 1,2,3,4  )
 		# fix if double colon prefixes
-		if [ "$OS" = "BSD" ]; then
+		if [ "$OS" == "BSD" ]; then
 			p=$(echo "$p" | sed -E 's;(\w+:):[!-z]+;\1;' )
 		else
 			p=$(echo "$p" | sed -r 's;(\w+:):[!-z]+;\1;' )
@@ -389,7 +377,7 @@ do
 	# ping6 all_nodes address, which will return a list of link-locals on the interface
 	#FIXME: try to consolidte the if into a single long pipe
 
-	if [ "$OS" = "BSD" ]; then
+	if [ "$OS" == "BSD" ]; then
 		BSD_OPT="-E"
 	else
 		BSD_OPT="-r"
@@ -407,11 +395,11 @@ do
 		for a in $addr_list
 		do		
 			# using BSD?
-			if [ "$OS" = "BSD" ]; then
-				local_host_list="$local_host_list $(ping6 -c 2  -I $i -S "$a" ff02::1 | egrep 'icmp|seq=' | sort -u  | awk '{print $4}' | sed $BSD_OPT 's;(.*),;\1;' | sort -u)"
+			if [ "$OS" == "BSD" ]; then
+				local_host_list="$local_host_list $(ping6 -c 2  -I $i -S "$a" ff02::1%"$i" | egrep 'icmp|seq=' | sort -u  | awk '{print $4}' | sed $BSD_OPT 's;(.*),;\1;' | sort -u)"
 			
 			else
-				local_host_list="$local_host_list $(ping6 -c 2  -I  "$a" ff02::1 | egrep 'icmp|seq=' | sort -u  | awk '{print $4}' | sed $BSD_OPT 's;(.*):;\1;' | sort -u)"
+				local_host_list="$local_host_list $(ping6 -c 2  -I  "$a" ff02::1%"$i" | egrep 'icmp|seq=' | sort -u  | awk '{print $4}' | sed $BSD_OPT 's;(.*):;\1;' | sort -u)"
 			fi
 		done
 	fi

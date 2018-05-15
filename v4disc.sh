@@ -1,4 +1,5 @@
-#!/bin/bash
+#!/usr/bin/env bash
+
 
 ##################################################################################
 #
@@ -38,7 +39,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=0.99.3
+VERSION=0.99.6
 
 #
 # Sourc in IP command emulator (uses ifconfig, hense more portable)
@@ -46,7 +47,7 @@ VERSION=0.99.3
 OS=""
 # check OS type
 OS=$(uname -s)
-if [ $OS == "Darwin" ]; then
+if [ $OS == "Darwin" ] || [ $OS == "FreeBSD" ]; then
 	# MacOS X compatibility
 	source ip_em.sh
 fi
@@ -150,27 +151,19 @@ function bitCountForMask {
 }
 
 
-function expand_quibble() {
-	addr=$1
-	# create array of quibbles
-	addr_array=(${addr//:/ })
-	addr_array_len=${#addr_array[@]}
-	# step thru quibbles
-	for ((i=0; i< $addr_array_len ; i++ ))
+function expand_mac () {
+	# adds leading zeros to MAC address for OUI match (BSD trims leading zeros)
+	new_mac=""
+	mac="$1"
+	mac_list=$(echo $mac | tr ":" " " | awk '{print $1 " " $2 " " $3 " " }' )
+	for m in $mac_list
 	do
-		quibble=${addr_array[$i]}
-		quibble_len=${#quibble}
-		case $quibble_len in
-			1) quibble="0$quibble";;
-			2) quibble="$quibble";;
-			3) quibble="$quibble";;
-		esac
-		addr_array[$i]=$quibble	
+		if (( ${#m} == 1 )); then
+			m="0$m"
+		fi
+		new_mac="$new_mac$m:"
 	done
-	# reconstruct addr from quibbles
-	return_str=${addr_array[*]}
-	return_str="${return_str// /:}"
-	echo $return_str
+	echo "$new_mac"
 }
 
 
@@ -314,7 +307,7 @@ if [ -f "$OUI_FILE" ]; then
 		else
 			mac=$f
 			#expand MAC (BSD suppresses zeros)
-			bsd_mac=$(expand_quibble $mac)
+			bsd_mac=$(expand_mac $mac)
 			
 			mac_oui=$(echo $bsd_mac | tr -d ":" | cut -c '-6' | tr 'abcdef' 'ABCDEF')
 			if [ "$mac_oui" == "70B3D5" ]; then
