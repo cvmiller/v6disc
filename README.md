@@ -226,7 +226,7 @@ Dual Stack option only supports IPv4 subnet masks of /23, /24, /25.
 
 The `v6disc.sh` script may *not* discover Windows machines which don't respond to a ping6 to multicast address FF02::1
 
-Although MacOS X is supported (as of version 2.0) FreeBSD is **not** supported. There is a bug in the FreeBSD kernel code which prevents the detection mechansim from using a GUA source address.
+Although MacOS X is supported (as of version 2.0) FreeBSD is *still* not supported. There is more testing and debugging required. Hope to have FreeBSD supported soon.
 
 ## Contributors
 
