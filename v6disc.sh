@@ -52,7 +52,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=2.0.3
+VERSION=2.0.4
 
 # initialize some vars
 INTERFACE=""
@@ -183,11 +183,6 @@ check=$(which $avahi)
 	fi
 
 # let user know BSD compatibility is being used
-if [ $OS == "BSD" ]; then
-	# MacOS X compatibility
-	log "-- using BSD Compatibility"
-fi
-
 # initialize flags based on $OS
 if [ "$OS" == "BSD" ]; then
 	# MacOS X/BSD compatibility
@@ -314,7 +309,7 @@ if [ "$INTERFACE" == "" ]; then
 	log "-- Searching for interface(s)"
 	intf_list=""
 	# Get a list of Interfaces which are UP
-	intf_list=$(ip link | egrep -i '(state up|multicast,up|up,)' | grep -v 'lo:' |grep -v -i no-carrier | cut -d ":" -f 2 | cut -d "@" -f 1 )
+	intf_list=$(ip link | egrep -i '(state up|multicast,up|up,)' | egrep -v 'lo.?:' |grep -v -i no-carrier | cut -d ":" -f 2 | cut -d "@" -f 1 )
 
 	# get count of interfaces - to be used by neighbour cache later
 	interface_count=$(echo "$intf_list"  | wc -w)	
@@ -528,7 +523,7 @@ do
 
 					if (( PING == 1 )); then
 						# ping6 hosts discovered
-						ping6 -W 1 -c1  "$host"
+						ping6 $PING6_OPT 1 -c1  "$host"
 					fi
 					if (( NMAP == 1 )); then
 						# scanning hosts discovered with nmap
