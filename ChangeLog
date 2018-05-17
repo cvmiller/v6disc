@@ -1,5 +1,11 @@
 All changes by Craig Miller cvmiller at gmail dot com
 
+16 May 2018			v2.03	
+	Improved discovery on FreeBSD
+
+15 May 2018			v2.0.2
+	Replaced expand_quibble function with expand_mac
+
 12 May 2018			v6disc.sh (2.0) v4disc.sh (0.99.3) ip_em.sh (0.95)
 	Added MacOS X (BSD) support using the IP command emulator (ip_em_sh)
 	Improved operation of -D (dual stack) on MacOS X

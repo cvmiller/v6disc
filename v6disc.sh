@@ -34,7 +34,7 @@ OS=""
 # check OS type
 OS=$(uname -s)
 if [ $OS == "Darwin" ] || [ $OS == "FreeBSD" ]; then
-	# MacOS X compatibility
+	# MacOS X/BSD compatibility
 	source ip_em.sh
 fi
 
@@ -67,7 +67,8 @@ host_list=""
 local_host_list=""
 interface_count=0
 OUI_FILE=wireshark_oui.gz
-
+SED_OPT=""
+PING6_OPT=""
 
 # is avahi/bonjour available?
 AVAHI=0
@@ -187,6 +188,19 @@ if [ $OS == "BSD" ]; then
 	log "-- using BSD Compatibility"
 fi
 
+# initialize flags based on $OS
+if [ "$OS" == "BSD" ]; then
+	# MacOS X/BSD compatibility
+	SED_OPT="-E"
+	PING6_OPT="-X"
+	log "-- using BSD Compatibility"
+else
+	# use linux flags
+	SED_OPT="-r"
+	PING6_OPT="-W"
+fi
+
+
 
 #======== Actual work performed by script ============
 
@@ -217,14 +231,16 @@ function 62mac {
 	#
 	#	Returns MAC address from neighbour cache
 	#
+	# uses global var: PING6_OPT
+	
 	host=$1
 	local_intf_mac=$2 
 	
 	# populate neighbour cache with a ping
 	if (( LINK_LOCAL == 1 )); then
-		z=$(ping6 -I "$intf" -W 1 -c 1 $host  2>/dev/null &)
+		z=$(ping6 -I "$intf" $PING6_OPT 1 -c 1 $host  2>/dev/null &)
 	else
-		z=$(ping6 -W 1 -c 1 $host  2>/dev/null &)
+		z=$(ping6 $PING6_OPT 1 -c 1 $host  2>/dev/null &)
 	fi
 	this_v6_mac=$(ip -6 neigh | grep -v FAILED | grep "$host"  | cut -d " " -f 5 | sort -u )
 		
@@ -270,13 +286,7 @@ function rtn_oui_man {
 	
 	#FIXME: only expand MAC if using BSD
 	#expand MAC (BSD suppresses zeros)
-	if (( ${#mac} != 17 )); then
-		# MAC address is NOT full width
-		bsd_mac=$(expand_mac $mac)
-	else
-		# no expansion required
-		bsd_mac=$mac
-	fi
+	bsd_mac=$(expand_mac $mac)
 	
 	mac_oui=$(echo $bsd_mac | tr -d ":" | cut -c '-6' | tr 'abcdef' 'ABCDEF')
 	if [ "$mac_oui" == "70B3D5" ]; then
@@ -383,18 +393,11 @@ do
 	# ping6 all_nodes address, which will return a list of link-locals on the interface
 	#FIXME: try to consolidte the if into a single long pipe
 
-	if [ "$OS" == "BSD" ]; then
-		BSD_OPT="-E"
-	else
-		BSD_OPT="-r"
-	fi
-
-
 	# always ping the link-locals to fill the neighbour cache
-	local_host_list=$(ping6 -c 1  -I "$i" ff02::1 | egrep 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed $BSD_OPT 's;(.*):;\1;' | sort -u)
+	local_host_list=$(ping6 -c 1  -I "$i" ff02::1 | egrep 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed $SED_OPT 's;(.*):;\1;' | sort -u)
 
 	if (( LINK_LOCAL == 1 )); then 
-		local_host_list=$(ping6  -c 2  -I "$i" ff02::1 | egrep 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed $BSD_OPT 's;(.*):;\1;' | sort -u)
+		local_host_list=$(ping6  -c 2  -I "$i" ff02::1 | egrep 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed $SED_OPT 's;(.*):;\1;' | sort -u)
 	else
 		
 		#there may be multiple GUAs on an interface
@@ -402,10 +405,10 @@ do
 		do		
 			# using BSD?
 			if [ "$OS" == "BSD" ]; then
-				local_host_list="$local_host_list $(ping6 -c 2  -I $i -S "$a" ff02::1%"$i" | egrep 'icmp|seq=' | sort -u  | awk '{print $4}' | sed $BSD_OPT 's;(.*),;\1;' | sort -u)"
+				local_host_list="$local_host_list $(ping6 -c 2  -I $i -S "$a" ff02::1%"$i" | egrep 'icmp|seq=' | sort -u  | awk '{print $4}' | sed $SED_OPT 's;(.*),;\1;' | sort -u)"
 			
 			else
-				local_host_list="$local_host_list $(ping6 -c 2  -I  "$a" ff02::1%"$i" | egrep 'icmp|seq=' | sort -u  | awk '{print $4}' | sed $BSD_OPT 's;(.*):;\1;' | sort -u)"
+				local_host_list="$local_host_list $(ping6 -c 2  -I  "$a" ff02::1%"$i" | egrep 'icmp|seq=' | sort -u  | awk '{print $4}' | sed $SED_OPT 's;(.*):;\1;' | sort -u)"
 			fi
 		done
 	fi
@@ -494,7 +497,7 @@ do
 				# is host in this prefix?
 				prefix_match=$(echo $host | grep -i $prefix )
 				if [ "$prefix_match" != "" ]; then
-					
+										
 					# list hosts found
 					if (( DUAL_STACK == 1 )); then
 						# pull MAC from IPv6 address
