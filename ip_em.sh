@@ -26,11 +26,11 @@
 #		
 #		
 #		
-VERSION=0.96
+VERSION=0.97
 
 # check OS type
 OS=$(uname -s)
-if [ $OS == "Darwin" ] || [ $OS == "FreeBSD" ]; then
+if [ "$OS" == "Darwin" ] || [ "$OS" == "FreeBSD" ]; then
 	OS="BSD"
 fi
 
@@ -68,9 +68,9 @@ function ip {
 	
 	case $1 in
 		"addr" )
-			result=$(ifconfig $dev | egrep "$inet_opt|ether" );;
+			result=$(ifconfig $dev | grep -E "$inet_opt|ether" );;
 		"link" )
-			result=$(ifconfig $dev | egrep 'flags|ether'| tr '\n' '|' | sed  's/1500|//g' |sed 's/0 mtu//g' | tr '|' '\n' | awk '{print "1: "$1 " " $2 "\n" $4 " " $5 " " $6 " " $7}' );;
+			result=$(ifconfig $dev | grep -E 'flags|ether'| tr '\n' '|' | sed  's/1500|//g' |sed 's/0 mtu//g' | tr '|' '\n' | awk '{print "1: "$1 " " $2 "\n" $4 " " $5 " " $6 " " $7}' );;
 		"neigh" )
 			if [ "$OS" != "Linux" ]; then
 				# OS is BSD
@@ -107,21 +107,21 @@ if [ -n "$1" ]; then
 		echo "---- ip link"
 		ip link
 		echo "---- ip link show dev $INTF | grep ether | awk '{print $2}'"
-		ip link show dev $INTF | grep ether | awk '{print $2}'
+		ip link show dev "$INTF" | grep ether | awk '{print $2}'
 		
 		
 		echo "---- ip link long (show interfaces)"
-		ip link | egrep -i '(state up|multicast,up|up,)' | grep -v -i no-carrier | cut -d ":" -f 2 | cut -d "@" -f 1
+		ip link | grep -E -i '(state up|multicast,up|up,)' | grep -v -i no-carrier | cut -d ":" -f 2 | cut -d "@" -f 1
 		
 		
 		echo "---- ip addr show dev $INTF"
-		ip addr show dev $INTF
+		ip addr show dev "$INTF"
 		echo "---- ip -6 addr show dev $INTF"
-		ip -6 addr show dev $INTF
+		ip -6 addr show dev "$INTF"
 		echo "---- ip -4 addr show dev $INTF"
-		ip -4 addr show dev $INTF
-		echo "---- ip really long"
-		ip addr show dev $INTF | grep -v temp | grep inet6 | grep -v fe80 | awk '{print $2}' | cut -d "/" -f 1 
+		ip -4 addr show dev "$INTF"
+		echo "---- ip really long (show GUAs)"
+		ip addr show dev "$INTF" | grep -v temp | grep inet6 | grep -v fe80 | awk '{print $2}' | cut -d "/" -f 1 
 		echo "---- ip -6 neigh"
 		ip -6 neigh
 		echo "---- ip -4 neigh"
@@ -129,9 +129,8 @@ if [ -n "$1" ]; then
 		echo "---- ip -4 route"
 		ip -4 route
 
-		echo "---- ip addr show dev $INTERFACE | grep 'inet ' | cut -d " " -f 6 | cut -d "/" -f 2 | sort -u"
-		ip addr show dev $INTERFACE | grep 'inet ' | cut -d " " -f 6 | cut -d "/" -f 2 | sort -u
-
+		echo "---- ip addr show dev $INTF | grep 'inet ' | awk '{print $4}' | sort -u (show netmask)"
+		ip addr show dev $INTF | grep 'inet ' | awk '{print $4}' | sort -u
 	fi
 fi
 

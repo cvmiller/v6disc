@@ -2,7 +2,7 @@
 
 ##################################################################################
 #
-#  Copyright (C) 2015-2016 Craig Miller
+#  Copyright (C) 2015-2018 Craig Miller
 #
 #  See the file "LICENSE" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -33,7 +33,7 @@
 OS=""
 # check OS type
 OS=$(uname -s)
-if [ $OS == "Darwin" ] || [ $OS == "FreeBSD" ]; then
+if [ "$OS" == "Darwin" ] || [ "$OS" == "FreeBSD" ]; then
 	# MacOS X/BSD compatibility
 	source ip_em.sh
 fi
@@ -52,7 +52,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=2.0.4
+VERSION=2.0.5
 
 # initialize some vars
 INTERFACE=""
@@ -74,7 +74,6 @@ PING6_OPT=""
 AVAHI=0
 
 # commands needed for this script
-ip="ip"
 v4="./v4disc.sh"
 nmap="nmap"
 nmap_options=" -6 -sT -F "
@@ -88,19 +87,19 @@ DEBUG=0
 while getopts "?hdpqi:LDN" options; do
   case $options in
     p ) PING=1
-    	let numopts+=1;;
+    	(( numopts++));;
     q ) QUIET=1
-    	let numopts+=1;;
+    	(( numopts++));;
     L ) LINK_LOCAL=1
-    	let numopts+=1;;
+    	(( numopts++));;
     N ) NMAP=1
-    	let numopts+=1;;
+    	(( numopts++));;
     D ) DUAL_STACK=1
-    	let numopts+=1;;
+    	(( numopts++));;
     i ) INTERFACE=$OPTARG
-    	let numopts+=2;;
+    	numopts=$(( numopts + 2));;
     d ) DEBUG=1
-    	let numopts+=1;;
+    	(( numopts++));;
     h ) usage;;
     \? ) usage	# show usage with flag and no value
          exit 1;;
@@ -119,7 +118,7 @@ fi
 
 # check for nmap
 if (( NMAP == 1 )); then
-	check=$(which $nmap)
+	check=$(command -v $nmap)
 	if (( $? == 1 )); then
 		echo "ERROR: nmap not found, disabling nmap option"
 		NMAP=0
@@ -143,7 +142,7 @@ if [ -f "$OUI_FILE" ]; then
 fi
 
 # check for zgrep (openwrt does NOT have zgrep, but does have zcat)
-zgrep=$(which zgrep)
+zgrep=$(command -v zgrep)
 
 
 
@@ -174,7 +173,7 @@ function log {
 }
 
 #check for avahi/bonjour
-check=$(which $avahi)
+check=$(command -v $avahi)
 	if (( $? == 1 )); then
 		log "WARN: avahi utis not found, skipping mDNS check"
 		AVAHI=0
@@ -213,7 +212,7 @@ function print_cols {
 		log "$1"
 	else
 		# supports upto 3 columns
-		if [ -z $4 ]; then 
+		if [ -z "$4" ]; then 
 			echo "$1" |  awk '{printf "%-40s %-20s %s\n",$1,$2,$3}'
 		else
 			# support 4 columns
@@ -233,7 +232,7 @@ function 62mac {
 	
 	# populate neighbour cache with a ping
 	if (( LINK_LOCAL == 1 )); then
-		z=$(ping6 -I "$intf" $PING6_OPT 1 -c 1 $host  2>/dev/null &)
+		z=$(ping6 -I "$intf" $PING6_OPT 1 -c 1 "$host"  2>/dev/null &)
 	else
 		z=$(ping6 $PING6_OPT 1 -c 1 $host  2>/dev/null &)
 	fi
@@ -249,8 +248,8 @@ function 62mac {
 		echo "$this_v6_mac"
 	else
 		# is this address a local IPv6 address?		
-		local_mac_num=$(ip addr | egrep "$host|$local_intf_mac" | wc -l)
-		if (( $local_mac_num == 2 )); then
+		local_mac_num=$(ip addr | grep -E "$host|$local_intf_mac" | wc -l)
+		if (( local_mac_num == 2 )); then
 			echo "$local_intf_mac"
 		else
 			# didn't find mac
@@ -264,7 +263,7 @@ function expand_mac () {
 	# adds leading zeros to MAC address for OUI match (BSD trims leading zeros)
 	new_mac=""
 	mac="$1"
-	mac_list=$(echo $mac | tr ":" " " | awk '{print $1 " " $2 " " $3 " " }' )
+	mac_list=$(echo "$mac" | tr ":" " " | awk '{print $1 " " $2 " " $3 " " }' )
 	for m in $mac_list
 	do
 		if (( ${#m} == 1 )); then
@@ -281,12 +280,12 @@ function rtn_oui_man {
 	
 	#FIXME: only expand MAC if using BSD
 	#expand MAC (BSD suppresses zeros)
-	bsd_mac=$(expand_mac $mac)
+	bsd_mac=$(expand_mac "$mac")
 	
-	mac_oui=$(echo $bsd_mac | tr -d ":" | cut -c '-6' | tr 'abcdef' 'ABCDEF')
+	mac_oui=$(echo "$bsd_mac" | tr -d ":" | cut -c '-6' | tr 'abcdef' 'ABCDEF')
 	if [ "$mac_oui" == "70B3D5" ]; then
 		# IEEE Registered 36 bit OUI address
-		mac_oui=$(echo $bsd_mac | tr -d ":" | cut -c '-9' | tr 'abcdef' 'ABCDEF')
+		mac_oui=$(echo "$bsd_mac" | tr -d ":" | cut -c '-9' | tr 'abcdef' 'ABCDEF')
 	fi
 	# zgrep is faster than zcat | grep
 	if [ "$zgrep" == "" ]; then
@@ -295,8 +294,8 @@ function rtn_oui_man {
 		oui=$($zgrep "^$mac_oui" "$OUI_FILE" | cut -c '7-')
 	fi
 	#echo "$addr $mac $mac_oui $oui $i"
-	if [ "$oui_table" == "" ]; then
-		echo $oui
+	if [ "$oui" != "" ]; then
+		echo "$oui"
 	fi
 
 }
@@ -309,13 +308,13 @@ if [ "$INTERFACE" == "" ]; then
 	log "-- Searching for interface(s)"
 	intf_list=""
 	# Get a list of Interfaces which are UP
-	intf_list=$(ip link | egrep -i '(state up|multicast,up|up,)' | egrep -v 'lo.?:' |grep -v -i no-carrier | cut -d ":" -f 2 | cut -d "@" -f 1 )
+	intf_list=$(ip link | grep -E -i '(state up|multicast,up|up,)' | grep -E -v 'lo.?:' |grep -v -i no-carrier | cut -d ":" -f 2 | cut -d "@" -f 1 )
 
 	# get count of interfaces - to be used by neighbour cache later
 	interface_count=$(echo "$intf_list"  | wc -w)	
 
 	if (( DEBUG == 1 )); then
-		echo "DEBUG: listing interfaces $(ip link | egrep '^[0-9]+:')"
+		echo "DEBUG: listing interfaces $(ip link | grep -E '^[0-9]+:')"
 		echo "DEBUG: count interface: $interface_count"
 	fi
 	
@@ -351,7 +350,7 @@ do
 			p=$(echo "$p" | sed -r 's;(\w+:):[!-z]+;\1;' )
 		fi
 		plist="$plist $p"
-		if (( $DEBUG == 1 )); then
+		if (( DEBUG == 1 )); then
 			echo "DEBUG: $plist"
 		fi
 	done
@@ -389,10 +388,10 @@ do
 	#FIXME: try to consolidte the if into a single long pipe
 
 	# always ping the link-locals to fill the neighbour cache
-	local_host_list=$(ping6 -c 1  -I "$i" ff02::1 | egrep 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed $SED_OPT 's;(.*):;\1;' | sort -u)
+	local_host_list=$(ping6 -c 1  -I "$i" ff02::1 | grep -E 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed $SED_OPT 's;(.*):;\1;' | sort -u)
 
 	if (( LINK_LOCAL == 1 )); then 
-		local_host_list=$(ping6  -c 2  -I "$i" ff02::1 | egrep 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed $SED_OPT 's;(.*):;\1;' | sort -u)
+		local_host_list=$(ping6  -c 2  -I "$i" ff02::1 | grep -E 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed $SED_OPT 's;(.*):;\1;' | sort -u)
 	else
 		
 		#there may be multiple GUAs on an interface
@@ -400,10 +399,10 @@ do
 		do		
 			# using BSD?
 			if [ "$OS" == "BSD" ]; then
-				local_host_list="$local_host_list $(ping6 -c 2  -I $i -S "$a" ff02::1%"$i" | egrep 'icmp|seq=' | sort -u  | awk '{print $4}' | sed $SED_OPT 's;(.*),;\1;' | sort -u)"
+				local_host_list="$local_host_list $(ping6 -c 2  -I "$i" -S "$a" ff02::1%"$i" | grep -E 'icmp|seq=' | sort -u  | awk '{print $4}' | sed $SED_OPT 's;(.*),;\1;' | sort -u)"
 			
 			else
-				local_host_list="$local_host_list $(ping6 -c 2  -I  "$a" ff02::1%"$i" | egrep 'icmp|seq=' | sort -u  | awk '{print $4}' | sed $SED_OPT 's;(.*):;\1;' | sort -u)"
+				local_host_list="$local_host_list $(ping6 -c 2  -I  "$a" ff02::1%"$i" | grep -E 'icmp|seq=' | sort -u  | awk '{print $4}' | sed $SED_OPT 's;(.*):;\1;' | sort -u)"
 			fi
 		done
 	fi
@@ -416,7 +415,7 @@ do
 	#	Check ping6 output, if empty, something is wrong
 	#
 	if [ "$local_host_list" == "" ] || [ $return_code -ne 0 ]; then
-		echo -e "Oops! Host detection not working.\n  Is IPv6 enabled on $intf?\n  ip6tables blocking ping6?"
+		echo -e "Oops! Host detection not working.\\n  Is IPv6 enabled on $intf?\\n  ip6tables blocking ping6?"
 	else
 		# Dual stack
 		if (( DUAL_STACK == 1 )); then
@@ -464,7 +463,7 @@ do
 		fi
 
 		# flag hoststr if ping or nmap
-		let options_sum=$PING+$NMAP
+		options_sum=$(( $PING + $NMAP ))
 		if (( options_sum > 0 )); then
 			hoststr="-- HOST:"
 		else
@@ -490,7 +489,7 @@ do
 					log " "
 				fi	
 				# is host in this prefix?
-				prefix_match=$(echo $host | grep -i $prefix )
+				prefix_match=$(echo "$host" | grep -i "$prefix" )
 				if [ "$prefix_match" != "" ]; then
 										
 					# list hosts found
@@ -508,11 +507,11 @@ do
 						v6_mac=$(62mac "$host" "$intf_mac")
 						if [ "$v6_mac" != "none" ]; then
 							# resolve OUI manufacture
-							v6_oui=$(rtn_oui_man $v6_mac )
+							v6_oui=$(rtn_oui_man "$v6_mac" )
 							print_cols "$hoststr $host $v6_mac $v6_oui"
 						else
 							# resolve OUI manufacture
-							v6_oui=$(rtn_oui_man $intf_mac )
+							v6_oui=$(rtn_oui_man "$intf_mac" )
 							print_cols "$hoststr $host $intf_mac $v6_oui"
 						fi
 					else
@@ -528,9 +527,9 @@ do
 					if (( NMAP == 1 )); then
 						# scanning hosts discovered with nmap
 						if (( LINK_LOCAL == 0 )); then 
-							$nmap $nmap_options $host
+							$nmap "$nmap_options" "$host"
 						else
-							$nmap $nmap_options "$host%$intf"
+							$nmap "$nmap_options" "$host%$intf"
 						fi
 					fi
 				fi; #prefix_match
