@@ -52,7 +52,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=2.0.5
+VERSION=2.0.6
 
 # initialize some vars
 INTERFACE=""
@@ -388,10 +388,10 @@ do
 	#FIXME: try to consolidte the if into a single long pipe
 
 	# always ping the link-locals to fill the neighbour cache
-	local_host_list=$(ping6 -c 1  -I "$i" ff02::1 | grep -E 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed $SED_OPT 's;(.*):;\1;' | sort -u)
+	local_host_list=$(ping6 -c 1  -I "$i" ff02::1 | grep -E 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed $SED_OPT 's;(.*):$;\1;' | sort -u)
 
 	if (( LINK_LOCAL == 1 )); then 
-		local_host_list=$(ping6  -c 2  -I "$i" ff02::1 | grep -E 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed $SED_OPT 's;(.*):;\1;' | sort -u)
+		local_host_list=$(ping6  -c 2  -I "$i" ff02::1 | grep -E 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed $SED_OPT 's;(.*):$;\1;' | sort -u)
 	else
 		
 		#there may be multiple GUAs on an interface
