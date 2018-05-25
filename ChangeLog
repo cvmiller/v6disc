@@ -1,5 +1,11 @@
 All changes by Craig Miller cvmiller at gmail dot com
 
+24 May 2018			v2.06
+	Fixed link-local-only discovry bug in BSD
+
+18 May 2018			v2.05
+	Ran shellcheck.net on scripts and cleaned up code
+
 16 May 2018			v2.03	
 	Improved discovery on FreeBSD
 
