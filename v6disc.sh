@@ -28,7 +28,7 @@
 #		
 
 #
-# Sourc in IP command emulator (uses ifconfig, hense more portable)
+# Source in IP command emulator (uses ifconfig, hence more portable)
 #
 OS=""
 # check OS type
