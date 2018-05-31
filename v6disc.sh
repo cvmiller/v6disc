@@ -28,7 +28,7 @@
 #		
 
 #
-# Sourc in IP command emulator (uses ifconfig, hense more portable)
+# Source in IP command emulator (uses ifconfig, hense more portable)
 #
 OS=""
 # check OS type
@@ -52,7 +52,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=2.0.6
+VERSION=2.0.6a
 
 # initialize some vars
 INTERFACE=""
