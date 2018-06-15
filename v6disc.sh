@@ -52,7 +52,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=2.0.6a
+VERSION=2.0.7
 
 # initialize some vars
 INTERFACE=""
@@ -527,9 +527,9 @@ do
 					if (( NMAP == 1 )); then
 						# scanning hosts discovered with nmap
 						if (( LINK_LOCAL == 0 )); then 
-							$nmap "$nmap_options" "$host"
+							$nmap $nmap_options "$host"
 						else
-							$nmap "$nmap_options" "$host%$intf"
+							$nmap $nmap_options "$host%$intf"
 						fi
 					fi
 				fi; #prefix_match

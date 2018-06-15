@@ -1,5 +1,8 @@
 All changes by Craig Miller cvmiller at gmail dot com
 
+15 June 2018			v2.07
+	Fixed nmap scanning option (not all shellcheck suggestions are good)
+
 24 May 2018			v2.06
 	Fixed link-local-only discovry bug in BSD
 
