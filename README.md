@@ -23,7 +23,7 @@ As of version 1.3, v6disc no longer guesses SLAAC addresses based on MAC address
 
 With [RFC 7217](https://tools.ietf.org/html/rfc7217) (A Method for Generating Semantically Opaque Interface Identifiers with IPv6 Stateless Address Autoconfiguration (SLAAC)) the GUA is more random (e.g. Mac OSX Sierra, aka 10.12). Because RFC 7217 GUA addresses are not guessable, `v6disc.sh` uses the local GUA to discover them (as of version 1.3)
 
-If multiple interfaces are detected, script will query each interface, good for running on routers (tested on OpenWRT 17.01.4)
+If multiple interfaces are detected, script will query each interface, good for running on routers (tested on OpenWRT 17.01.4 & 18.06.1)
 
 #### Why Bash?
 Bash is terrible at string handling, why write this script in bash? Because I wanted it to run on my router (OpenWRT), and just about every where else, with the minimal amount of dependencies. It is possible to run Python on OpenWRT, but Python requires more storage (more packages) than just bash.
@@ -212,7 +212,7 @@ Copy `ip_em.sh` to the same directory, for MacOS X compatibility (as of version 
 
 ## Dependencies
 
-Script requires bash, ip, grep, tr, sed, sort, cut, awk, ping6 and ping (for Dual Stack). Most distros will have these already installed. `nmap` is required if using the `-N` option. Tested on OpenWRT (17.01.4) after installing bash, ip, and nmap.
+Script requires bash, ip, grep, tr, sed, sort, cut, awk, ping6 and ping (for Dual Stack). Most distros will have these already installed. `nmap` is required if using the `-N` option. Tested on OpenWRT (17.01.4 & 18.06.1) after installing bash, ip, and nmap.
 
 If avahi utils are detected, `v6disc.sh` will also use *bonjour* to detect hosts (as of version 1.2)
 
