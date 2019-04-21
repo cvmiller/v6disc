@@ -52,7 +52,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=2.0.7
+VERSION=2.0.8
 
 # initialize some vars
 INTERFACE=""
@@ -391,7 +391,7 @@ do
 	local_host_list=$(ping6 -c 1  -I "$i" ff02::1 | grep -E 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed $SED_OPT 's;(.*):$;\1;' | sort -u)
 
 	if (( LINK_LOCAL == 1 )); then 
-		local_host_list=$(ping6  -c 2  -I "$i" ff02::1 | grep -E 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed $SED_OPT 's;(.*):$;\1;' | sort -u)
+		local_host_list=$(ping6  -c 2  -I "$i" ff02::1 | grep -E 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed $SED_OPT 's;(.*):$;\1;' | sed $SED_OPT 's;(.*)%\w+$;\1;' | sort -u)
 	else
 		
 		#there may be multiple GUAs on an interface
