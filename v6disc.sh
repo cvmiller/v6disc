@@ -52,7 +52,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=2.0.9
+VERSION=2.1.0
 
 # initialize some vars
 INTERFACE=""
@@ -263,7 +263,8 @@ function expand_mac () {
 	# adds leading zeros to MAC address for OUI match (BSD trims leading zeros)
 	new_mac=""
 	mac="$1"
-	mac_list=$(echo "$mac" | tr ":" " " | awk '{print $1 " " $2 " " $3 " " }' )
+	#mac_list=$(echo "$mac" | tr ":" " " | awk '{print $1 " " $2 " " $3 " " }' )
+	mac_list=$(echo "$mac" | tr ":" " " )
 	for m in $mac_list
 	do
 		if (( ${#m} == 1 )); then
@@ -277,22 +278,49 @@ function expand_mac () {
 
 function rtn_oui_man {
 	mac=$1
+	full_mac=$1
 	
 	#FIXME: only expand MAC if using BSD
 	#expand MAC (BSD suppresses zeros)
 	bsd_mac=$(expand_mac "$mac")
+	full_mac=$bsd_mac
 	
 	mac_oui=$(echo "$bsd_mac" | tr -d ":" | cut -c '-6' | tr 'abcdef' 'ABCDEF')
 	if [ "$mac_oui" == "70B3D5" ]; then
 		# IEEE Registered 36 bit OUI address
 		mac_oui=$(echo "$bsd_mac" | tr -d ":" | cut -c '-9' | tr 'abcdef' 'ABCDEF')
 	fi
+
 	# zgrep is faster than zcat | grep
 	if [ "$zgrep" == "" ]; then
 		oui=$(zcat "$OUI_FILE" | grep "^$mac_oui" | cut -c '7-')
 	else
 		oui=$($zgrep "^$mac_oui" "$OUI_FILE" | cut -c '7-')
 	fi
+	
+	# determine if this is a "special" non-24-bit OUI
+	ieeeoui=$(echo "$oui" | egrep -o  '/[0-9][0-9]' | tr -d '\n'| cut -c '1-3'   )
+	if ((DEBUG == 1 )); then echo "DEBUG:ieeeoui:$ieeeoui##"; fi
+
+	# ieee OUIs aren't all first 24 bits, there is 28 and 36 bit OUIs as well	
+	if [ "$ieeeoui" != "" ]; then
+		case $ieeeoui in
+		  "/28") OUICUT=7;;
+		  "/36") OUICUT=9;;
+		  * )  OUICUT=6;;
+		esac
+		if ((DEBUG == 1 )); then echo "DEBUG:ieeeoui: $ieeeoui|OUICUT:$OUICUT"; fi
+		mac_oui=$(echo "$full_mac" | tr -d ":" | cut -c "1-$OUICUT" | tr 'abcdef' 'ABCDEF')
+		# look at oui database again
+		# zgrep is faster than zcat | grep
+		if [ "$zgrep" == "" ]; then
+			oui=$(zcat "$OUI_FILE" | grep "^$mac_oui" | egrep -o '[A-Z][A-Za-z]+')
+		else
+			oui=$($zgrep "^$mac_oui" "$OUI_FILE" | egrep -o '[A-Z][A-Za-z]+' )
+		fi
+		
+	fi
+	
 	#echo "$addr $mac $mac_oui $oui $i"
 	if [ "$oui" != "" ]; then
 		echo "$oui"
