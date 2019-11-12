@@ -39,7 +39,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=0.99.6
+VERSION=0.99.7
 
 #
 # Sourc in IP command emulator (uses ifconfig, hense more portable)
@@ -314,7 +314,7 @@ if [ -f "$OUI_FILE" ]; then
 				# IEEE Registered 36 bit OUI address
 				mac_oui=$(echo $bsd_mac | tr -d ":" | cut -c '-9' | tr 'abcdef' 'ABCDEF')
 			fi
-			if [ $zgrep == "" ]; then
+			if [ "$zgrep" == "" ]; then
 				oui=$(zcat "$OUI_FILE" | grep "^$mac_oui" | cut -c '7-')
 			else
 				oui=$($zgrep "^$mac_oui" "$OUI_FILE" | cut -c '7-')
