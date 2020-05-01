@@ -52,7 +52,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=2.1.1
+VERSION=2.1.2
 
 # initialize some vars
 INTERFACE=""
@@ -144,6 +144,14 @@ fi
 # check for zgrep (openwrt does NOT have zgrep, but does have zcat)
 zgrep=$(command -v zgrep)
 
+# check version of ping6 (GNU inetutils does not support -I interface option)
+ping6 -h 2>&1 | grep -- '-I'
+if [ $? -ne 0 ]; then
+	echo "Error: ping6 does not support -I <interface>, please install iputils-ping package"
+	echo
+	usage
+	exit 1
+fi
 
 
 function log {
