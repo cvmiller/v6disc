@@ -52,7 +52,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=2.1.2
+VERSION=2.2.0
 
 # initialize some vars
 INTERFACE=""
@@ -68,6 +68,7 @@ local_host_list=""
 interface_count=0
 OUI_FILE=wireshark_oui.gz
 SED_OPT=""
+PING6_CMD="ping6"
 PING6_OPT=""
 
 # is avahi/bonjour available?
@@ -116,6 +117,15 @@ if [ $# -ne 0 ]; then
 	exit 1
 fi
 
+# detect if linux system is using ping or ping6
+ping6_detect=$(which ping6 2>/dev/null)
+if [ $? -ne 0 ]; then
+	# Modern Linux which has a unified ping command
+	PING6_CMD="ping"
+fi
+
+
+
 # check for nmap
 if (( NMAP == 1 )); then
 	check=$(command -v $nmap)
@@ -145,7 +155,7 @@ fi
 zgrep=$(command -v zgrep)
 
 # check version of ping6 (GNU inetutils does not support -I interface option)
-ping6 -h 2>&1 | grep -- '-I'
+int_opt=$($PING6_CMD -h 2>&1 | grep -- '-I')
 if [ $? -ne 0 ]; then
 	echo "Error: ping6 does not support -I <interface>, please install iputils-ping package"
 	echo
@@ -240,9 +250,9 @@ function 62mac {
 	
 	# populate neighbour cache with a ping
 	if (( LINK_LOCAL == 1 )); then
-		z=$(ping6 -I "$intf" $PING6_OPT 1 -c 1 "$host"  2>/dev/null &)
+		z=$($PING6_CMD -I "$intf" $PING6_OPT 1 -c 1 "$host"  2>/dev/null &)
 	else
-		z=$(ping6 $PING6_OPT 1 -c 1 $host  2>/dev/null &)
+		z=$($PING6_CMD $PING6_OPT 1 -c 1 $host  2>/dev/null &)
 	fi
 	this_v6_mac=$(ip -6 neigh | grep -v FAILED | grep "$host"  | cut -d " " -f 5 | sort -u )
 		
@@ -424,11 +434,12 @@ do
 	#FIXME: try to consolidte the if into a single long pipe
 
 	# always ping the link-locals to fill the neighbour cache
-	local_host_list=$(ping6 -c 1  -I "$i" ff02::1 | grep -E 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed $SED_OPT 's;(.*):$;\1;' | sort -u)
+	# May get ping warning "Warning: source address might be selected on device other than: <intf>"
+	local_host_list=$($PING6_CMD -c 1  -I "$i" ff02::1 | grep -E 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed $SED_OPT 's;(.*):$;\1;' | sort -u)
 	if ((DEBUG == 1 )); then echo "DEBUG:ping6 error:$?"; fi
 	
 	if (( LINK_LOCAL == 1 )); then 
-		local_host_list=$(ping6  -c 2  -I "$i" ff02::1 | grep -E 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed $SED_OPT 's;(.*)[:,]$;\1;' | sed $SED_OPT 's;(.*)%[a-z0-9]+$;\1;' | sort -u)
+		local_host_list=$($PING6_CMD  -c 2  -I "$i" ff02::1 | grep -E 'icmp|seq=' |grep 'fe80' | sort -u  |  awk '{print $4}' | sed $SED_OPT 's;(.*)[:,]$;\1;' | sed $SED_OPT 's;(.*)%[a-z0-9]+$;\1;' | sort -u)
 	else
 		
 		#there may be multiple GUAs on an interface
@@ -436,10 +447,10 @@ do
 		do		
 			# using BSD?
 			if [ "$OS" == "BSD" ]; then
-				local_host_list="$local_host_list $(ping6 -c 2  -I "$i" -S "$a" ff02::1%"$i" | grep -E 'icmp|seq=' | sort -u  | awk '{print $4}' | sed $SED_OPT 's;(.*),;\1;' | sort -u)"
+				local_host_list="$local_host_list $($PING6_CMD -c 2  -I "$i" -S "$a" ff02::1%"$i" | grep -E 'icmp|seq=' | sort -u  | awk '{print $4}' | sed $SED_OPT 's;(.*),;\1;' | sort -u)"
 			
 			else
-				local_host_list="$local_host_list $(ping6 -c 2  -I  "$a" ff02::1%"$i" | grep -E 'icmp|seq=' | sort -u  | awk '{print $4}' | sed $SED_OPT 's;(.*):;\1;' | sort -u)"
+				local_host_list="$local_host_list $($PING6_CMD -c 2  -I  "$a" ff02::1%"$i" | grep -E 'icmp|seq=' | sort -u  | awk '{print $4}' | sed $SED_OPT 's;(.*):;\1;' | sort -u)"
 			fi
 		done
 	fi
@@ -559,7 +570,7 @@ do
 
 					if (( PING == 1 )); then
 						# ping6 hosts discovered
-						ping6 $PING6_OPT 1 -c1  "$host"
+						$PING6_CMD $PING6_OPT 1 -c1  "$host"
 					fi
 					if (( NMAP == 1 )); then
 						# scanning hosts discovered with nmap
