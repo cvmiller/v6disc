@@ -46,13 +46,14 @@ function usage {
 	       echo "	-L  show link-local only"
 	       echo "	-D  Dual Stack, show IPv4 addresses"
 	       echo "	-N  Scan with nmap -6 -sT"
+	       echo "	-n  disable neighbour table detection"
 	       echo "	-q  quiet, just print discovered hosts"
 	       echo "	"
 	       echo " By Craig Miller - Version: $VERSION"
 	       exit 1
            }
 
-VERSION=2.2.0
+VERSION=2.3.0
 
 # initialize some vars
 INTERFACE=""
@@ -63,6 +64,8 @@ PING=0
 DEBUG=0
 QUIET=0
 OUI_CHECK=0
+# neighbour table detection, enabled by default
+HOST_NEIGHBOURS=1
 host_list=""
 local_host_list=""
 interface_count=0
@@ -85,7 +88,7 @@ avahi_resolve="avahi-resolve-host-name"
 
 DEBUG=0
 
-while getopts "?hdpqi:LDN" options; do
+while getopts "?hdpqi:LDNn" options; do
   case $options in
     p ) PING=1
     	(( numopts++));;
@@ -96,6 +99,8 @@ while getopts "?hdpqi:LDN" options; do
     N ) NMAP=1
     	(( numopts++));;
     D ) DUAL_STACK=1
+    	(( numopts++));;
+    n ) HOST_NEIGHBOURS=0
     	(( numopts++));;
     i ) INTERFACE=$OPTARG
     	numopts=$(( numopts + 2));;
@@ -225,16 +230,17 @@ function print_cols {
 	#
 	str=$(echo "$*" | tr '\n' ' ' )
 	str_begin=$(echo "$str" | cut -d " " -f 1)
+	
 	# print headings
 	if [ "$str_begin" == "--" ]; then
 		log "$1"
 	else
 		# supports upto 3 columns
 		if [ -z "$4" ]; then 
-			echo "$1" |  awk '{printf "%-40s %-20s %s\n",$1,$2,$3}'
+			echo "$str" |  awk '{printf "%-40s %-20s %s\n",$1,$2,$3}'
 		else
 			# support 4 columns
-			echo "$1" |  awk '{printf "%-60s %-40s %-20s %s\n",$1,$2,$3,$4}'
+			echo "$str" |  awk '{printf "%-60s %-40s %-20s %s\n",$1,$2,$3,$4}'
 		fi
 	fi
 }
@@ -254,11 +260,12 @@ function 62mac {
 	else
 		z=$($PING6_CMD $PING6_OPT 1 -c 1 $host  2>/dev/null &)
 	fi
-	this_v6_mac=$(ip -6 neigh | grep -v FAILED | grep "$host"  | cut -d " " -f 5 | sort -u )
+	#this_v6_mac=$(ip -6 neigh | grep -v FAILED | grep "$host"  | cut -d " " -f 5 | sort -u )
+	# ip -6 neigh number of fields change (if router), therefore detect MAC directly
+	this_v6_mac=$(ip -6 neigh | grep -v FAILED | grep "$host "  | grep -E -o '([0-9a-fA-F]{2}:){5}[0-9a-fA-F]{2}' | sort -u )
 		
 #	if (( DEBUG == 1 )); then
 #		echo "DEBUG 62mac: $host | $local_intf_mac | $this_v6_mac" > /dev/stderr
-#		
 #	fi
 	
 	# return this_v6_mac value
@@ -303,6 +310,8 @@ function rtn_oui_man {
 	bsd_mac=$(expand_mac "$mac")
 	full_mac=$bsd_mac
 	
+	#if ((DEBUG == 1 )); then echo "DEBUG:FullMAC:$full_mac"; fi
+	
 	mac_oui=$(echo "$bsd_mac" | tr -d ":" | cut -c '-6' | tr 'abcdef' 'ABCDEF')
 	if [ "$mac_oui" == "70B3D5" ]; then
 		# IEEE Registered 36 bit OUI address
@@ -317,8 +326,8 @@ function rtn_oui_man {
 	fi
 	
 	# determine if this is a "special" non-24-bit OUI
-	ieeeoui=$(echo "$oui" | egrep -o  '/[0-9][0-9]' | tr -d '\n'| cut -c '1-3'   )
-	if ((DEBUG == 1 )); then echo "DEBUG:ieeeoui:$ieeeoui##"; fi
+	ieeeoui=$(echo "$oui" | grep -E -o  '/[0-9][0-9]' | tr -d '\n'| cut -c '1-3'   )
+	#if ((DEBUG == 1 )); then echo -n "DEBUG:ieeeoui:$ieeeoui##"; fi
 
 	# ieee OUIs aren't all first 24 bits, there is 28 and 36 bit OUIs as well	
 	if [ "$ieeeoui" != "" ]; then
@@ -332,9 +341,9 @@ function rtn_oui_man {
 		# look at oui database again
 		# zgrep is faster than zcat | grep
 		if [ "$zgrep" == "" ]; then
-			oui=$(zcat "$OUI_FILE" | grep "^$mac_oui" | egrep -o '[A-Z][A-Za-z]+')
+			oui=$(zcat "$OUI_FILE" | grep "^$mac_oui" | grep -E -o '[A-Z][A-Za-z]+')
 		else
-			oui=$($zgrep "^$mac_oui" "$OUI_FILE" | egrep -o '[A-Z][A-Za-z]+' )
+			oui=$($zgrep "^$mac_oui" "$OUI_FILE" | grep -E -o '[A-Z][A-Za-z]+' )
 		fi
 		
 	fi
@@ -431,7 +440,7 @@ do
 	# clear list
 	local_host_list=""
 	# ping6 all_nodes address, which will return a list of link-locals on the interface
-	#FIXME: try to consolidte the if into a single long pipe
+	#FIXME: try to consolidate the if into a single long pipe
 
 	# always ping the link-locals to fill the neighbour cache
 	# May get ping warning "Warning: source address might be selected on device other than: <intf>"
@@ -459,6 +468,9 @@ do
 	local_host_list=$(echo "$local_host_list" | tr ' ' '\n' | sort -u | tr -d ',')
 	
 	return_code=$?
+	
+	
+	
 	#
 	#	Check ping6 output, if empty, something is wrong
 	#
@@ -511,7 +523,7 @@ do
 		fi
 
 		# flag hoststr if ping or nmap
-		options_sum=$(( $PING + $NMAP ))
+		options_sum=$(( PING + NMAP ))
 		if (( options_sum > 0 )); then
 			hoststr="-- HOST:"
 		else
@@ -523,8 +535,23 @@ do
 		do
 			log "-- Discovered hosts for prefix: $prefix on $intf"
 			
+			#
+			# Check IPv6 neighbours, catches hosts that don't respond to "ff02::1" (like Windows) 
+			#
+			if (( HOST_NEIGHBOURS == 1 )); then 
+				#ne_host_list=$(ip -6 neigh | grep -v "FAIL" | awk '{print $1}' | grep -E "^$prefix" )
+				ne_host_list=$(ip -6 neigh | awk '{print $1}' | grep  -E "^$prefix" | sort -u )
+				#if (( DEBUG == 1 )); then echo "DEBUG: NEhostlist: $ne_host_list"; fi
+				#if (( DEBUG == 1 )); then echo "DEBUG: LOCALhostlist: $local_host_list"; fi
+				
+				# append lists, and remove duplicates
+				host_list+=" $ne_host_list"
+				host_list=$(echo "$host_list" | sort -u )
+			else
+				host_list=$local_host_list
+			fi
 			
-			host_list=$local_host_list
+			 
 			if (( DEBUG == 1 )); then echo "DEBUG: hostlist: $host_list"; fi
 			
 			#
@@ -556,6 +583,9 @@ do
 						if [ "$v6_mac" != "none" ]; then
 							# resolve OUI manufacture
 							v6_oui=$(rtn_oui_man "$v6_mac" )
+							# fix column when mac is not found
+							if [ "$v6_mac" == "INCOMPLETE" ]; then v6_mac="EXPIRED"; fi
+
 							print_cols "$hoststr $host $v6_mac $v6_oui"
 						else
 							# resolve OUI manufacture
@@ -575,9 +605,9 @@ do
 					if (( NMAP == 1 )); then
 						# scanning hosts discovered with nmap
 						if (( LINK_LOCAL == 0 )); then 
-							$nmap $nmap_options "$host"
+							$nmap "$nmap_options" "$host"
 						else
-							$nmap $nmap_options "$host%$intf"
+							$nmap "$nmap_options" "$host%$intf"
 						fi
 					fi
 				fi; #prefix_match
