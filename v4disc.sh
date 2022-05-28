@@ -155,7 +155,8 @@ function expand_mac () {
 	# adds leading zeros to MAC address for OUI match (BSD trims leading zeros)
 	new_mac=""
 	mac="$1"
-	mac_list=$(echo $mac | tr ":" " " | awk '{print $1 " " $2 " " $3 " " }' )
+	#mac_list=$(echo $mac | tr ":" " " | awk '{print $1 " " $2 " " $3 }' )
+	mac_list=$(echo "$mac" | tr ":" " " )
 	for m in $mac_list
 	do
 		if (( ${#m} == 1 )); then
@@ -313,8 +314,10 @@ if [ -f "$OUI_FILE" ]; then
 			if [ "$mac_oui" == "70B3D5" ]; then
 				# IEEE Registered 36 bit OUI address
 				mac_oui=$(echo $bsd_mac | tr -d ":" | cut -c '-9' | tr 'abcdef' 'ABCDEF')
+				#echo "MAC|$bsd_mac|$mac_oui|"
+
 			fi
-			if [ "$zgrep" == "" ]; then
+			if [ $zgrep == "" ]; then
 				oui=$(zcat "$OUI_FILE" | grep "^$mac_oui" | cut -c '7-')
 			else
 				oui=$($zgrep "^$mac_oui" "$OUI_FILE" | cut -c '7-')
