@@ -53,7 +53,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=2.3.0
+VERSION=2.3.1
 
 # initialize some vars
 INTERFACE=""
@@ -198,7 +198,7 @@ function log {
 #check for avahi/bonjour
 check=$(command -v $avahi)
 	if (( $? == 1 )); then
-		log "WARN: avahi utis not found, skipping mDNS check"
+		log "WARN: avahi utils not found, skipping mDNS check"
 		AVAHI=0
 	else
 		AVAHI=1
