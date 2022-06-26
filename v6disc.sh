@@ -53,7 +53,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=2.3.1
+VERSION=2.3.2
 
 # initialize some vars
 INTERFACE=""
@@ -195,6 +195,13 @@ function log {
 	fi
 }
 
+# Awk comparison of real numbers - https://stackoverflow.com/questions/8654051/how-can-i-compare-two-floating-point-numbers-in-bash
+numCompare() {
+   awk -v n1="$1" -v n2="$2" 'BEGIN {printf "%s " (n1<n2?"<":">=") " %s\n", n1, n2}'
+}
+
+
+
 #check for avahi/bonjour
 check=$(command -v $avahi)
 	if (( $? == 1 )); then
@@ -202,6 +209,9 @@ check=$(command -v $avahi)
 		AVAHI=0
 	else
 		AVAHI=1
+		# check version of avahi
+		avahi_ver=$($avahi -V | awk '{print $2}' )
+		if (( DEBUG == 1 )); then echo "DEBUG:  avahi version: $avahi_ver";fi
 	fi
 
 # let user know BSD compatibility is being used
@@ -618,7 +628,12 @@ do
 		#
 		if (( AVAHI == 1 )); then
 			log "-- Displaying avahi discovered hosts"
-			avahi_list=$($avahi -at 2>/dev/null | grep IPv6 | awk '{print $4}'  | grep -v 'Fail' | sort -u )
+			# compare real numbers using awk
+			if awk "BEGIN {exit !($avahi_ver < 0.8)}"; then			
+				avahi_list=$($avahi -at 2>/dev/null | grep IPv6 | awk '{print $4}'  | grep -v 'Fail' | sort -u )
+			else
+				avahi_list=$($avahi  -atrp  2>/dev/null | grep IPv6 | cut -d ";" -f 7  | sort -u )
+			fi
 			if (( DEBUG == 1 )); then echo "DEBUG: avahi_list: $avahi_list"; fi
 			# setup filter for only Link Local, if LINK_LOCAL is set
 			if (( LINK_LOCAL == 0 )); then 
@@ -630,7 +645,7 @@ do
 			# show avahi discovered list
 			for ahost in $avahi_list
 			do
-				avahi_host=$($avahi_resolve -6n "$ahost".local 2>/dev/null)
+				avahi_host=$($avahi_resolve -6n "$ahost" 2>/dev/null)
 				if [ "$avahi_host" != "" ]; then
 					if (( DEBUG == 1 )); then echo "DEBUG: avahi_host: $avahi_host"; fi
 					if (( QUIET == 0 )); then
