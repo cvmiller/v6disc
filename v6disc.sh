@@ -53,7 +53,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=2.3.3
+VERSION=2.3.4
 
 # initialize some vars
 INTERFACE=""
@@ -554,7 +554,8 @@ do
 				#if (( DEBUG == 1 )); then echo "DEBUG: NEhostlist: $ne_host_list"; fi
 				#if (( DEBUG == 1 )); then echo "DEBUG: LOCALhostlist: $local_host_list"; fi
 				
-				# append lists, and remove duplicates
+				# append lists, and remove duplicates and merge lists
+				host_list=$local_host_list		#fix to merge discovered hosts lists 
 				host_list+=" $ne_host_list"
 				host_list=$(echo "$host_list" | sort -u )
 			else
