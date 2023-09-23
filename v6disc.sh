@@ -53,7 +53,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=2.3.4
+VERSION=2.3.5
 
 # initialize some vars
 INTERFACE=""
@@ -373,7 +373,7 @@ if [ "$INTERFACE" == "" ]; then
 	log "-- Searching for interface(s)"
 	intf_list=""
 	# Get a list of Interfaces which are UP
-	intf_list=$(ip link | grep -E -i '(state up|multicast,up|up,)' | grep -E -v 'lo.?:' |grep -v -i no-carrier | cut -d ":" -f 2 | cut -d "@" -f 1 )
+	intf_list=$(ip link | grep -E -i '(state up|multicast,up|up,)' | grep -E -v ' lo.?:' |grep -v -i no-carrier | cut -d ":" -f 2 | cut -d "@" -f 1 )
 
 	# get count of interfaces - to be used by neighbour cache later
 	interface_count=$(echo "$intf_list"  | wc -w)	
