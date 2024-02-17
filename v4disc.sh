@@ -3,7 +3,7 @@
 
 ##################################################################################
 #
-#  Copyright (C) 2015-2022 Craig Miller
+#  Copyright (C) 2015-2024 Craig Miller
 #
 #  See the file "LICENSE" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
