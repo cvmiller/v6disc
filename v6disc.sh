@@ -53,7 +53,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=2.3.5
+VERSION=2.3.6
 
 # initialize some vars
 INTERFACE=""
@@ -410,7 +410,7 @@ do
 		p=$(echo "$prefix" | cut -d ':' -f 1,2,3,4  )
 		# fix if double colon prefixes
 		if [ "$OS" == "BSD" ]; then
-			p=$(echo "$p" | sed -E 's;(\w+:):[!-z]+;\1;' )
+			p=$(echo "$p" | sed -E 's;([[:alnum:]]+:):[!-z]+;\1;' )
 		else
 			p=$(echo "$p" | sed -r 's;(\w+:):[!-z]+;\1;' )
 		fi
