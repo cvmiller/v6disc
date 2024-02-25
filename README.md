@@ -234,7 +234,7 @@ If avahi utils are detected, `v6disc.sh` will also use *bonjour* to detect hosts
 
 The script assumes /64 subnets (as all end stations should be on a /64). Discovers only the SLAAC address (as defined by RFC 4862), and does not attempt to guess the temporary addresses. Only decects hosts on locally attached network (will not cross routers, but can run on OpenWRT router).
 
-Dual Stack option only supports IPv4 subnet masks of 19/, 20,/ 21, /22, /23, /24, /25, /26.
+Dual Stack option only supports IPv4 subnet masks of /19, /20, /21, /22, /23, /24, /25, /26.
 
 The `v6disc.sh` script may *not* discover Windows machines which don't respond to a ping6 to multicast address FF02::1
 
