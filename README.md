@@ -13,8 +13,8 @@ There are three reasons to use `v6disc.sh`
 
 With 18,446,744,073,709,551,616 (2^64) potential addresses on a LAN segment, the old brute force method of scanning every address (e.g. with nnap) quickly becomes impractical. Even with version 7 of `nmap`, scanning a /64 still **takes a week**! `v6disc.sh` scans a /64 less than **5 seconds**.
 
-#### MacOS X support (version 2.0)
-MacOS X is BSD based, and does not support the linux `ip` command. By creating a ip command emulator in bash, the `ip` basic show commands are supported on BSD. The script will detect if it is running on a Mac, and automatically include `ip_em.sh`, the `ip` command emulator script.
+#### MacOS X & BSD support (version 2.0)
+MacOS X is BSD based, and does not support the linux `ip` command. By creating a ip command emulator in bash, the `ip` basic show commands are supported on BSD. The script will detect if it is running on a Mac/BSD, and automatically include `ip_em.sh`, the `ip` command emulator script.
 
 #### IPv6 under the hood
 Each IPv6 node joins the multicast IPv6 all_notes group (FF02::1), one only needs to ping6 this group to determine which hosts are on the link. Pinging using the host Global Unicast Address (GUA) will yield GUAs in that prefix, including hosts which use DHCPv6. 
@@ -23,7 +23,7 @@ As of version 1.3, v6disc no longer guesses SLAAC addresses based on MAC address
 
 With [RFC 7217](https://tools.ietf.org/html/rfc7217) (A Method for Generating Semantically Opaque Interface Identifiers with IPv6 Stateless Address Autoconfiguration (SLAAC)) the GUA is more random (e.g. Mac OSX Sierra, aka 10.12). Because RFC 7217 GUA addresses are not guessable, `v6disc.sh` uses the local GUA to discover them (as of version 1.3)
 
-If multiple interfaces are detected, script will query each interface, good for running on routers (tested on OpenWRT 17.01.4 & 18.06.1, 19.07.7, & 20.02.1)
+If multiple interfaces are detected, script will query each interface, good for running on routers (tested on OpenWRT 17.01.4 & 18.06.1, 19.07.7, & 20.02.1, 22.03.x, 23.05.x)
 
 Some hosts (most notably Windows) will not respond to a multicast ping (to FF02:1). When running `v6disc.sh` on a router, the script will also use neighbour table detection, finding any hosts which send traffic through the router. Use `-n` option to disable neighbour table detection (as of version 2.3)
 
@@ -118,6 +118,15 @@ fdce:5802:8872:0:3e2a:f4ff:fe37:dac4     3c:2a:f4:37:da:c4    BrotherI
 -- Pau 
 
 ```
+
+To update the OUI database download from [wireshark](https://www.wireshark.org/download/automated/data/manuf). Download and process using the following commands, and place in the same directory as **v6disc.sh**:
+
+```
+curl https://www.wireshark.org/download/automated/data/manuf 
+cat manuf | awk '{print $1 $2}' |  tr -d ":" | sed -r 's;(^[ #]+.*);;' > wireshark_oui
+gzip wireshark_oui
+```
+
 
 #### Using the Link-Local Option
 Don't have a global routable prefix on your network. Still want to see how many IPv6 enabled hosts are ready for the IPv6 network? The link-local option, -L, will print only the discovered hosts (shown with Dual Stack option)
@@ -225,11 +234,12 @@ If avahi utils are detected, `v6disc.sh` will also use *bonjour* to detect hosts
 
 The script assumes /64 subnets (as all end stations should be on a /64). Discovers only the SLAAC address (as defined by RFC 4862), and does not attempt to guess the temporary addresses. Only decects hosts on locally attached network (will not cross routers, but can run on OpenWRT router).
 
-Dual Stack option only supports IPv4 subnet masks of /23, /24, /25.
+Dual Stack option only supports IPv4 subnet masks of 19/, 20,/ 21, /22, /23, /24, /25, /26.
 
 The `v6disc.sh` script may *not* discover Windows machines which don't respond to a ping6 to multicast address FF02::1
 
-Although MacOS X is supported (as of version 2.0) FreeBSD is *still* not supported. There is more testing and debugging required. Hope to have FreeBSD supported soon.
+Although MacOS X is supported (as of version 2.0) FreeBSD is also *now* supported. 
+
 
 ## Contributors
 
