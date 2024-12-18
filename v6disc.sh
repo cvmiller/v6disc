@@ -53,7 +53,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=2.3.6
+VERSION=2.3.8
 
 # initialize some vars
 INTERFACE=""
@@ -78,12 +78,16 @@ PING6_OPT=""
 AVAHI=0
 
 # commands needed for this script
-v4="./v4disc.sh"
+# get current directory path
+dir=$(echo "$0" | grep -o '[0-9a-zA-Z/.]*/')
+# run v4disc from current directory path
+v4="$dir/v4disc.sh"
 nmap="nmap"
 nmap_options=" -6 -sT -F "
 
 avahi="avahi-browse"
 avahi_resolve="avahi-resolve-host-name"
+
 
 
 DEBUG=0

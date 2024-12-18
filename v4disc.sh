@@ -3,7 +3,7 @@
 
 ##################################################################################
 #
-#  Copyright (C) 2015-2024 Craig Miller
+#  Copyright (C) 2015-2016 Craig Miller
 #
 #  See the file "LICENSE" for information on usage and redistribution
 #  of this file, and for a DISCLAIMER OF ALL WARRANTIES.
@@ -22,7 +22,7 @@
 #
 #
 #	Limitations: 
-#		only ipv4 cidr /21, /22, /23, /24, /25, /26 supported
+#		only ipv4 cidr /21, /22, /23, /24, 25 supported
 #
 #
 #	Wireshark OUT database - https://code.wireshark.org/review/gitweb?p=wireshark.git;a=blob_plain;f=manuf
@@ -39,7 +39,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=1.0.1
+VERSION=0.99.9
 
 #
 # Sourc in IP command emulator (uses ifconfig, hense more portable)
@@ -192,10 +192,6 @@ log "INTF:$INTERFACE	ADDR:$this_addr	CIDR=$net_mask"
 #default start
 start_subnet=1
 
-### TEST_DEBUG
-#subnet_4=50
-#net_mask=26
-
 case $net_mask in
 	24) start_subnet=1
 		START=1
@@ -207,24 +203,6 @@ case $net_mask in
 			start_subnet=129
 			START=129
 			END=255
-		fi
-		;;
-	26) START=1
-		END=63
-		if (( $subnet_4 > 64 )); then 
-			start_subnet=65
-			START=65
-			END=127
-		fi
-		if (( $subnet_4 > 128 )); then 
-			start_subnet=129
-			START=129
-			END=191
-		fi
-		if (( $subnet_4 > 192 )); then 
-			start_subnet=193
-			START=193
-			END=254
 		fi
 		;;
 	23) 
@@ -257,21 +235,15 @@ case $net_mask in
 		START=1
 		# make end max-2 or it will scan begining of next subnet
 		END=8048
-		echo "Whoa, a /19, this could take a while" | egrep --color ".*"
+		echo "Whoa, a /19, this could take a while" | grep -E --color ".*"
 		;;
 	*) # unsupported IPv4 subnet size
-		if (( $QUIET == 0  )) &&  [ "$net_mask" == "" ]; then 
-			echo "WARN: IPv4 netmask not found, perhaps this is an IPv6-only network?"
-		elif [ $QUIET -eq 0 ]; then echo "WARN: Unsupported subnet netmask: $net_mask"
-		fi
+		if [ $QUIET -eq 0 ]; then echo "WARN: Unsupported subnet netmask: $net_mask"; fi
 		exit 1
 		;;
 esac
 
 if (( $DEBUG == 1 )); then echo "DEBUG: start=$START  end=$END"; fi
-
-### TEST_DEBUG
-#exit
 
 
 # fill arp table
@@ -319,7 +291,7 @@ my_mac=$($ip addr show dev $INTERFACE | grep 'link/ether' | cut -d " " -f 6 )
 
 # show arp table
 log "-- ARP table"
-arp_table=$($ip -4 neigh | egrep -i -v '(INCOMPLETE|FAILED)' | cut -d " " -f 1,5 | sort -n)
+arp_table=$($ip -4 neigh | grep -E -i -v '(INCOMPLETE|FAILED)' | cut -d " " -f 1,5 | sort -n)
 # add my_addr to arp_table
 arp_table="$arp_table"$'\n'"$my_addr $my_mac"
 
