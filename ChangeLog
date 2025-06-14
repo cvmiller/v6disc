@@ -1,5 +1,9 @@
 All changes by Craig Miller cvmiller at gmail dot com
 
+
+13 June 2025		v2.3.9
+	Updated support for 28 bit OUIs
+
 12 October 2019		v2.1.0
 	Where did all the time go. Some OUIs are not 24 bit (first 3 bytes)
 		Updated to handle OUI bit lengths of 28 & 36

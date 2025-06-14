@@ -53,7 +53,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=2.3.8
+VERSION=2.3.9
 
 # initialize some vars
 INTERFACE=""
@@ -330,6 +330,11 @@ function rtn_oui_man {
 	if [ "$mac_oui" == "70B3D5" ]; then
 		# IEEE Registered 36 bit OUI address
 		mac_oui=$(echo "$bsd_mac" | tr -d ":" | cut -c '-9' | tr 'abcdef' 'ABCDEF')
+	fi
+
+	if [ "$mac_oui" == "F023B91" ] || [ "$mac_oui" == "F023B9" ]; then
+		# IEEE Registered 28 bit OUI address
+		mac_oui=$(echo "$bsd_mac" | tr -d ":" | cut -c '-7' | tr 'abcdef' 'ABCDEF')
 	fi
 
 	# zgrep is faster than zcat | grep
