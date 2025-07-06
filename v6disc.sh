@@ -53,7 +53,7 @@ function usage {
 	       exit 1
            }
 
-VERSION=2.3.9
+VERSION=2.4.0
 
 # initialize some vars
 INTERFACE=""
@@ -332,10 +332,6 @@ function rtn_oui_man {
 		mac_oui=$(echo "$bsd_mac" | tr -d ":" | cut -c '-9' | tr 'abcdef' 'ABCDEF')
 	fi
 
-	if [ "$mac_oui" == "F023B91" ] || [ "$mac_oui" == "F023B9" ]; then
-		# IEEE Registered 28 bit OUI address
-		mac_oui=$(echo "$bsd_mac" | tr -d ":" | cut -c '-7' | tr 'abcdef' 'ABCDEF')
-	fi
 
 	# zgrep is faster than zcat | grep
 	if [ "$zgrep" == "" ]; then
@@ -346,16 +342,19 @@ function rtn_oui_man {
 	
 	# determine if this is a "special" non-24-bit OUI
 	ieeeoui=$(echo "$oui" | grep -E -o  '/[0-9][0-9]' | tr -d '\n'| cut -c '1-3'   )
-	#if ((DEBUG == 1 )); then echo -n "DEBUG:ieeeoui:$ieeeoui##"; fi
+	if ((DEBUG == 1 )); then echo -n "DEBUG:ieeemask:$ieeeoui##"; fi
 
 	# ieee OUIs aren't all first 24 bits, there is 28 and 36 bit OUIs as well	
 	if [ "$ieeeoui" != "" ]; then
-		case $ieeeoui in
+		OUICUT=6
+		case "$ieeeoui" in
 		  "/28") OUICUT=7;;
 		  "/36") OUICUT=9;;
 		  * )  OUICUT=6;;
 		esac
-		if ((DEBUG == 1 )); then echo "DEBUG:ieeeoui: $ieeeoui|OUICUT:$OUICUT"; fi
+		 
+
+		#if ((DEBUG == 1 )); then echo "DEBUG:ieeeoui:${ieeeoui}|OUICUT:${OUICUT}"; fi
 		mac_oui=$(echo "$full_mac" | tr -d ":" | cut -c "1-$OUICUT" | tr 'abcdef' 'ABCDEF')
 		# look at oui database again
 		# zgrep is faster than zcat | grep

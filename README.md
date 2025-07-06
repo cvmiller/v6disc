@@ -23,7 +23,7 @@ As of version 1.3, v6disc no longer guesses SLAAC addresses based on MAC address
 
 With [RFC 7217](https://tools.ietf.org/html/rfc7217) (A Method for Generating Semantically Opaque Interface Identifiers with IPv6 Stateless Address Autoconfiguration (SLAAC)) the GUA is more random (e.g. Mac OSX Sierra, aka 10.12). Because RFC 7217 GUA addresses are not guessable, `v6disc.sh` uses the local GUA to discover them (as of version 1.3)
 
-If multiple interfaces are detected, script will query each interface, good for running on routers (tested on OpenWRT 17.01.4 & 18.06.1, 19.07.7, & 20.02.1, 22.03.x, 23.05.x)
+If multiple interfaces are detected, script will query each interface, good for running on routers (tested on OpenWRT 17.01.4 & 18.06.1, 19.07.7, & 20.02.1, 22.03.x, 23.05.x, 24.10.x)
 
 Some hosts (most notably Windows) will not respond to a multicast ping (to FF02:1). When running `v6disc.sh` on a router, the script will also use neighbour table detection, finding any hosts which send traffic through the router. Use `-n` option to disable neighbour table detection (as of version 2.3)
 
@@ -89,7 +89,7 @@ fe80::129a:ddff:feae:8166                kukui.local
 
 #### Using autodetection with OUI lookup (v1.5 or later)
 
-If the wireshark.gz OUI file is present, v6disc.sh will automatically look up the OUI (MAC manufacturer) in the listing
+If the wireshark_oui.gz OUI file is present, v6disc.sh will automatically look up the OUI (MAC manufacturer) in the listing
 
 ```
 $ ./v6disc.sh 
@@ -119,6 +119,7 @@ fdce:5802:8872:0:3e2a:f4ff:fe37:dac4     3c:2a:f4:37:da:c4    BrotherI
 
 ```
 
+**Prior to Wireshark v4.0**
 To update the OUI database download from [wireshark](https://www.wireshark.org/download/automated/data/manuf). Download and process using the following commands, and place in the same directory as **v6disc.sh**:
 
 ```
@@ -126,6 +127,40 @@ curl https://www.wireshark.org/download/automated/data/manuf
 cat manuf | awk '{print $1 $2}' |  tr -d ":" | sed -r 's;(^[ #]+.*);;' > wireshark_oui
 gzip wireshark_oui
 ```
+
+**For Wireshark v4.0 and after**
+
+Wireshark has changed their OUI file format, and removed the `manuf` file from the repo.
+
+Instead use the `create_manuf.sh` program (as part of this package) to pull the OUI info directly from the IEEE website. This `create_manuf.sh` requires `curl`
+
+```
+$ ./create_manuf.sh 
+/usr/bin/curl
+Getting file: 1
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100 3483k  100 3483k    0     0  1204k      0  0:00:02  0:00:02 --:--:-- 1204k
+Getting file: 2
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100 18097  100 18097    0     0  62607      0 --:--:-- --:--:-- --:--:-- 62836
+Getting file: 3
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  372k  100  372k    0     0   566k      0 --:--:-- --:--:-- --:--:--  566k
+Getting file: 4
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  653k  100  653k    0     0   856k      0 --:--:-- --:--:-- --:--:--  856k
+Getting file: 5
+  % Total    % Received % Xferd  Average Speed   Time    Time     Time  Current
+                                 Dload  Upload   Total   Spent    Left  Speed
+100  590k  100  590k    0     0   768k      0 --:--:-- --:--:-- --:--:--  768k
+Created file is: /tmp//wireshark_oui.gz
+Pau
+```
+
 
 
 #### Using the Link-Local Option
@@ -224,7 +259,7 @@ Copy `ip_em.sh` to the same directory, for MacOS X compatibility (as of version 
 
 ## Dependencies
 
-Script requires bash, ip, grep, tr, sed, sort, cut, awk, ping6 and ping (for Dual Stack). Most distros will have these already installed. `nmap` is required if using the `-N` option. Tested on OpenWRT (17.01.4 & 18.06.1, 19.07.7) after installing bash, ip, and nmap.
+Script requires bash, ip, grep, tr, sed, sort, cut, awk, ping6 and ping (for Dual Stack). Most distros will have these already installed. `nmap` is required if using the `-N` option. Tested on OpenWRT after installing: bash, ip, and nmap.
 
 If avahi utils are detected, `v6disc.sh` will also use *bonjour* to detect hosts (as of version 1.2)
 
@@ -232,13 +267,13 @@ If avahi utils are detected, `v6disc.sh` will also use *bonjour* to detect hosts
 
 ## Limitations
 
-The script assumes /64 subnets (as all end stations should be on a /64). Discovers only the SLAAC address (as defined by RFC 4862), and does not attempt to guess the temporary addresses. Only decects hosts on locally attached network (will not cross routers, but can run on OpenWRT router).
+The script assumes /64 subnets (as all end stations should be on a /64). Discovers only the SLAAC address (as defined by RFC 4862), and does not attempt to guess the temporary addresses. Only detects hosts on locally attached network (will not cross routers, but can run on OpenWRT router with multiple interfaces).
 
 Dual Stack option only supports IPv4 subnet masks of /19, /20, /21, /22, /23, /24, /25, /26.
 
 The `v6disc.sh` script may *not* discover Windows machines which don't respond to a ping6 to multicast address FF02::1
 
-Although MacOS X is supported (as of version 2.0) FreeBSD is also *now* supported. 
+MacOS X is supported (as of version 2.0) FreeBSD is also supported. 
 
 
 ## Contributors
