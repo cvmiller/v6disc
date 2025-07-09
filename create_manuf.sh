@@ -6,12 +6,12 @@
 
 
 #
-# Pulls IEEE OUT files directly from IEEE
+# Pulls IEEE OUI files directly from IEEE
 #	Parses OUI and Manufacturer, reduces string size, and compresses
 #
 
 
-VERSION="0.90"
+VERSION="0.91"
 
 
 TMPPATH="/tmp/"
@@ -29,10 +29,9 @@ OUTPUT_FILE=wireshark_oui
 
 
 usage() {
-           echo "	$0 - Create manuf file "
+           echo "	$0 - Create manuf file (default name = wireshark_oui.gz) "
 	       echo "	e.g. $0 -h "
 	       echo "	-d  debug"
-	       #echo "	-n <pod number>  Override Pod number in pod.conf"
 	       echo "	"
 	       echo " By Craig Miller - Version: $VERSION"
 	       exit 1
@@ -83,7 +82,7 @@ i=4
 echo "Getting file: $i"
 curl ${ieee_url[$i]} | cut -d ',' -f 2,3 | sed -r 's;([0-9A-F]{7});\100000/28;' | tr -d ' ' |  tr -d ',' | tr -d '"' | cut -c  '-23' > $TMPPATH/ieee$i
 
-# get 34 bit OUI e.g. '0CEFAF700000/28Syntrans'
+# get 36 bit OUI e.g. '8C1F64AFA000/36DATAELEC'
 i=5
 echo "Getting file: $i"
 curl ${ieee_url[$i]} | cut -d ',' -f 2,3 | sed -r 's;([0-9A-F]{9});\1000/36;' | tr -d ' ' |  tr -d ',' | tr -d '"' | cut -c  '-23' > $TMPPATH/ieee$i

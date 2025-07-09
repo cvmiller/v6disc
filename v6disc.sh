@@ -49,11 +49,13 @@ function usage {
 	       echo "	-n  disable neighbour table detection"
 	       echo "	-q  quiet, just print discovered hosts"
 	       echo "	"
+	       echo "	\"Pau\" is Hawaiian for Done"
+	       echo "	"
 	       echo " By Craig Miller - Version: $VERSION"
 	       exit 1
            }
 
-VERSION=2.4.0
+VERSION=2.4.1
 
 # initialize some vars
 INTERFACE=""
